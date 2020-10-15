@@ -2,6 +2,7 @@ import PySimpleGUIWeb as sg
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasAgg
 import matplotlib.figure
+import matplotlib.pyplot as plt
 import io
 
 
@@ -14,16 +15,25 @@ def create_figure():
     return fig
 
 
-def draw_figure(fig, element):
+def draw_figure(element, fig):
+    """
+    Draws the previously created "figure" in the supplied Image Element
+
+    :param element: an Image Element
+    :param fig: a Matplotlib figure
+    :return: The figure canvas
+    """
+
+    plt.close('all')  # erases previously drawn plots
     canv = FigureCanvasAgg(fig)
     buf = io.BytesIO()
     canv.print_figure(buf, format='png')
-
     if buf is None:
         return None
     buf.seek(0)
-    data = buf.read()
-    element.update(data=data)
+    element.update(data=buf.read())
+    return canv
+
 
 def main():
 
@@ -40,7 +50,7 @@ def main():
         if event == 'Exit' or event == sg.WIN_CLOSED:
             break
         if event == 'Draw':
-            draw_figure(create_figure(), window['-IMAGE-'])
+            draw_figure(window['-IMAGE-'], create_figure())
     window.close()
 
 

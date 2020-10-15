@@ -1119,7 +1119,7 @@ Like above, you may have to install either pip or tkinter.  To do this on Python
 
 `sudo apt install python-tkinter`
 
-### Upgrading from GitHub Using PySimpleGUI
+## Upgrading from GitHub Using PySimpleGUI
 
 Starting in version 4.17.0 there is code in the PySimpleGUI package that upgrades your previously pip installed package using the latest version checked into GitHub.  
 
@@ -1448,7 +1448,8 @@ Popup(args=*<1 or N object>,
     keep_on_top=False,
     location=(None, None),
     any_key_closes=False,
-    image=None)
+    image=None,
+    modal=True)
 ```
 
 Parameter Descriptions:
@@ -1474,6 +1475,7 @@ Parameter Descriptions:
 |                     bool                     |     keep_on_top     | If True the window will remain above all current windows |
 |                     bool                     |   any_key_closes    | If True then will turn on return_keyboard_events for the window which will cause window to close as soon as any key is pressed. Normally the return key only will close the window. Default is false. |
 |                str) or (bytes                |        image        | Image to include at the top of the popup window |
+|                     bool                     |        modal        | If True then makes the popup will behave like a Modal window... all other windows are non-operational until this one is closed. Default = False |
 | Union[str, None] | **RETURN** | Returns text of the button that was pressed.  None will be returned if user closed window with X
 
 The other output Popups are variations on parameters.  Usually the button_type parameter is the primary one changed.
@@ -1513,7 +1515,8 @@ popup_scrolled(args=*<1 or N object>,
     grab_anywhere=False,
     keep_on_top=False,
     font=None,
-    image=None)
+    image=None,
+    modal=True)
 ```
 
 Parameter Descriptions:
@@ -1522,7 +1525,7 @@ Parameter Descriptions:
 |--|--|--|
 |             Any             |        *args        | Variable number of items to display |
 |             str             |        title        | Title to display in the window. |
-|       Tuple[str, str]       |    button_color     | button color (foreground, background) |
+|   Tuple[str, str] or str    |    button_color     | button color (foreground, background) |
 |            bool             |       yes_no        | If True, displays Yes and No buttons instead of Ok |
 |            bool             |     auto_close      | if True window will close itself |
 |      Union[int, float]      | auto_close_duration | Older versions only accept int. Time in seconds until window will close |
@@ -1536,6 +1539,7 @@ Parameter Descriptions:
 |            bool             |     keep_on_top     | If True the window will remain above all current windows |
 | Union[str, Tuple[str, int]] |        font         | specifies the font family, size, etc |
 |       str) or (bytes        |        image        | Image to include at the top of the popup window |
+|            bool             |        modal        | If True then makes the popup will behave like a Modal window... all other windows are non-operational until this one is closed. Default = False |
 | Union[str, None, TIMEOUT_KEY] | **RETURN** | Returns text of the button that was pressed.  None will be returned if user closed window with X
 
 Typical usage:
@@ -1577,7 +1581,8 @@ popup_no_wait(args=*<1 or N object>,
     grab_anywhere=False,
     keep_on_top=False,
     location=(None, None),
-    image=None)
+    image=None,
+    modal=False)
 ```
 
 Parameter Descriptions:
@@ -1587,7 +1592,7 @@ Parameter Descriptions:
 |             Any             |        *args        | Variable number of items to display |
 |             str             |        title        | Title to display in the window. |
 |             int             |     button_type     | Determines which pre-defined buttons will be shown (Default value = POPUP_BUTTONS_OK). |
-|       Tuple[str, str]       |    button_color     | button color (foreground, background) |
+|   Tuple[str, str] or str    |    button_color     | button color (foreground, background) |
 |             str             |  background_color   | color of background |
 |             str             |     text_color      | color of the text |
 |            bool             |     auto_close      | if True window will close itself |
@@ -1600,6 +1605,7 @@ Parameter Descriptions:
 |            bool             |    grab_anywhere    | If True: can grab anywhere to move the window (Default = False) |
 |       Tuple[int, int]       |      location       | Location of upper left corner of the window |
 |       str) or (bytes        |        image        | Image to include at the top of the popup window |
+|            bool             |        modal        | If True then makes the popup will behave like a Modal window... all other windows are non-operational until this one is closed. Default = False |
 | Union[str, None] | **RETURN** | Reason for popup closing
 
 The `popup` call `popup_no_wait` or `popup_non_blocking` will create a popup window and then immediately return control back to you.  You can turn other popup calls into non-blocking popups if they have a `non_blocking` parameter.  Setting `non_blocking` to True will cause the function to return immediately rather than waiting for the window to be closed.
@@ -1640,7 +1646,8 @@ popup_get_text(message,
     grab_anywhere=False,
     keep_on_top=False,
     location=(None, None),
-    image=None)
+    image=None,
+    modal=True)
 ```
 
 Parameter Descriptions:
@@ -1652,7 +1659,7 @@ Parameter Descriptions:
 |             str             |   default_text   | default value to put into input area |
 |             str             |  password_char   | character to be shown instead of actually typed characters |
 |         (int, int)          |       size       | (width, height) of the InputText Element |
-|       Tuple[str, str]       |   button_color   | Color of the button (text, background) |
+|   Tuple[str, str] or str    |   button_color   | Color of the button (text, background) |
 |             str             | background_color | background color of the entire window |
 |             str             |    text_color    | color of the message text |
 |      Union[bytes, str]      |       icon       | filename or base64 string to be used for the window's icon |
@@ -1662,6 +1669,7 @@ Parameter Descriptions:
 |            bool             |   keep_on_top    | If True the window will remain above all current windows |
 |       Tuple[int, int]       |     location     | (x,y) Location on screen to display the upper left corner of window |
 |       str) or (bytes        |      image       | Image to include at the top of the popup window |
+|            bool             |      modal       | If True then makes the popup will behave like a Modal window... all other windows are non-operational until this one is closed. Default = True |
 | Union[str, None] | **RETURN** | Text entered or None if window was closed or cancel button clicked
 
 ```python
@@ -1700,7 +1708,8 @@ popup_get_file(message,
     keep_on_top=False,
     location=(None, None),
     initial_folder=None,
-    image=None)
+    image=None,
+    modal=True)
 ```
 
 Parameter Descriptions:
@@ -1716,7 +1725,7 @@ Parameter Descriptions:
 |    Tuple[Tuple[str,str]]    |    file_types     | List of extensions to show using wildcards. All files (the default) = (("ALL Files", "*.*"),) |
 |            bool             |     no_window     | if True, no PySimpleGUI window will be shown. Instead just the tkinter dialog is shown |
 |         (int, int)          |       size        | (width, height) of the InputText Element |
-|       Tuple[str, str]       |   button_color    | Color of the button (text, background) |
+|   Tuple[str, str] or str    |   button_color    | Color of the button (text, background) |
 |             str             | background_color  | background color of the entire window |
 |             str             |    text_color     | color of the text |
 |      Union[bytes, str]      |       icon        | filename or base64 string to be used for the window's icon |
@@ -1727,6 +1736,7 @@ Parameter Descriptions:
 |       Tuple[int, int]       |     location      | Location of upper left corner of the window |
 |             str             |  initial_folder   | location in filesystem to begin browsing |
 |       str) or (bytes        |       image       | Image to include at the top of the popup window |
+|            bool             |       modal       | If True then makes the popup will behave like a Modal window... all other windows are non-operational until this one is closed. Default = False |
 | Union[str, None] | **RETURN** | string representing the file(s) chosen, None if cancelled or window closed with X
 
 If configured as an Open File Popup then (save_as is not True)  the dialog box will look like this. 
@@ -1770,7 +1780,8 @@ popup_get_folder(message,
     keep_on_top=False,
     location=(None, None),
     initial_folder=None,
-    image=None)
+    image=None,
+    modal=True)
 ```
 
 Parameter Descriptions:
@@ -1782,7 +1793,7 @@ Parameter Descriptions:
 |             str             |   default_path   | path to display to user as starting point (filled into the input field) |
 |            bool             |    no_window     | if True, no PySimpleGUI window will be shown. Instead just the tkinter dialog is shown |
 |         (int, int)          |       size       | (width, height) of the InputText Element |
-|       Tuple[str, str]       |   button_color   | button color (foreground, background) |
+|   Tuple[str, str] or str    |   button_color   | button color (foreground, background) |
 |             str             | background_color | color of background |
 |             str             |    text_color    | color of the text |
 |      Union[bytes, str]      |       icon       | filename or base64 string to be used for the window's icon |
@@ -1793,6 +1804,7 @@ Parameter Descriptions:
 |       Tuple[int, int]       |     location     | Location of upper left corner of the window |
 |             str             |  initial_folder  | location in filesystem to begin browsing |
 |       str) or (bytes        |      image       | Image to include at the top of the popup window |
+|            bool             |      modal       | If True then makes the popup will behave like a Modal window... all other windows are non-operational until this one is closed. Default = False |
 | Union[str, None] | **RETURN** | string representing the path chosen, None if cancelled or window closed with X
 
 This is a typical call
@@ -1876,18 +1888,18 @@ Parameter Descriptions:
 
 |Type|Name|Meaning|
 |--|--|--|
-|          str           |     title     | text to display in eleemnt |
-|          int           | current_value | current value |
-|          int           |   max_value   | max value of QuickMeter |
-| Union[str, int, tuple] |      key      | Used to differentiate between mutliple meters. Used to cancel meter early. Now optional as there is a default value for single meters |
-|          Any           |     *args     | stuff to output |
-|          str           |  orientation  | 'horizontal' or 'vertical' ('h' or 'v' work) (Default value = 'vertical' / 'v') |
-|    Tuple(str, str)     |   bar_color   | color of a bar line |
-|    Tuple[str, str]     | button_color  | button color (foreground, background) |
-|       (int, int)       |     size      | (w,h) w=characters-wide, h=rows-high (Default value = DEFAULT_PROGRESS_BAR_SIZE) |
-|          int           | border_width  | width of border around element |
-|          bool          | grab_anywhere | If True: can grab anywhere to move the window (Default = False) |
-|          bool          |  no_titlebar  | If True: no titlebar will be shown on the window |
+|              str               |     title     | text to display in eleemnt |
+|              int               | current_value | current value |
+|              int               |   max_value   | max value of QuickMeter |
+| Union[str, int, tuple, object] |      key      | Used to differentiate between mutliple meters. Used to cancel meter early. Now optional as there is a default value for single meters |
+|              Any               |     *args     | stuff to output |
+|              str               |  orientation  | 'horizontal' or 'vertical' ('h' or 'v' work) (Default value = 'vertical' / 'v') |
+|        Tuple(str, str)         |   bar_color   | color of a bar line |
+|     Tuple[str, str] or str     | button_color  | button color (foreground, background) |
+|           (int, int)           |     size      | (w,h) w=characters-wide, h=rows-high (Default value = DEFAULT_PROGRESS_BAR_SIZE) |
+|              int               | border_width  | width of border around element |
+|              bool              | grab_anywhere | If True: can grab anywhere to move the window (Default = False) |
+|              bool              |  no_titlebar  | If True: no titlebar will be shown on the window |
 | (bool) | **RETURN** | True if updated successfully. False if user closed the meter with the X or Cancel button
 
 Here's the one-line Progress Meter in action!
@@ -2576,15 +2588,91 @@ You have a couple of options for dealing this with.  If your operation can be br
 
 If, on the other hand, your operation is not under your control or you are unable to add `Refresh` calls, then the next option available to you is to move your long operations into a thread.
 
+### The "Old Way"
+
 There are a couple of demo programs available for you to see how to do this.  You basically put your work into a thread.  When the thread is completed, it tells the GUI by sending a message through a queue.  The event loop will run with a timer set to a value that represents how "responsive" you want your GUI to be to the work completing.  
 
-These 2 demo programs are called
-```python
-Demo_Threaded_Work.py - Best documented.  Single thread used for long task
-Demo_Multithreaded_Long_Tasks.py - Similar to above, but with less fancy GUI. Allows you to set amount of time
-```
+### The "New Way" - `Window.write_event_value`
 
-These 2 particular demos have a LOT of comments showing you where to add your code, etc..  The amount of code to do this is actually quite small and you don't need to understand the mechanisms used if you simply follow the demo that's been prepared for you.
+This new function that is available currently only in the tkinter port as of July 2020 is exciting and represents the future way multi-threading will be handled in PySimpleGUI (or so is hoped).
+
+Previously, a queue was used where your event loop would **poll** for incoming messages from a thread.
+
+Now, threads can directly inject events into a Window so that it will show up in the `window.read()` calls.  This allows a your event loop to "pend", waiting for normal window events as well as events being generated by threads.
+
+You can see this new capability in action in this demo:  Demo_Multithreaded_Write_Event_Value.py
+
+Here is that program for your inspection and education.  It's SO nice to no longer poll for threaded events.
+
+```python
+import threading
+import time
+import PySimpleGUI as sg
+
+"""
+    Threaded Demo - Uses Window.write_event_value communications
+
+    Requires PySimpleGUI.py version 4.25.0 and later
+
+    This is a really important demo  to understand if you're going to be using multithreading in PySimpleGUI.
+
+    Older mechanisms for multi-threading in PySimpleGUI relied on polling of a queue. The management of a communications
+    queue is now performed internally to PySimpleGUI.
+
+    The importance of using the new window.write_event_value call cannot be emphasized enough.  It will hav a HUGE impact, in
+    a positive way, on your code to move to this mechanism as your code will simply "pend" waiting for an event rather than polling.
+
+    Copyright 2020 PySimpleGUI.org
+"""
+
+THREAD_EVENT = '-THREAD-'
+
+cp = sg.cprint
+
+def the_thread(window):
+    """
+    The thread that communicates with the application through the window's events.
+
+    Once a second wakes and sends a new event and associated value to the window
+    """
+    i = 0
+    while True:
+        time.sleep(1)
+        window.write_event_value('-THREAD-', (threading.current_thread().name, i))      # Data sent is a tuple of thread name and counter
+        cp('This is cheating from the thread', c='white on green')
+        i += 1
+
+def main():
+    """
+    The demo will display in the multiline info about the event and values dictionary as it is being
+    returned from window.read()
+    Every time "Start" is clicked a new thread is started
+    Try clicking "Dummy" to see that the window is active while the thread stuff is happening in the background
+    """
+
+    layout = [  [sg.Text('Output Area - cprint\'s route to here', font='Any 15')],
+                [sg.Multiline(size=(65,20), key='-ML-', autoscroll=True, reroute_stdout=True, write_only=True, reroute_cprint=True)],
+                [sg.T('Input so you can see data in your dictionary')],
+                [sg.Input(key='-IN-', size=(30,1))],
+                [sg.B('Start A Thread'), sg.B('Dummy'), sg.Button('Exit')]  ]
+
+    window = sg.Window('Window Title', layout, finalize=True)
+
+    while True:             # Event Loop
+        event, values = window.read()
+        cp(event, values)
+        if event == sg.WIN_CLOSED or event == 'Exit':
+            break
+        if event.startswith('Start'):
+            threading.Thread(target=the_thread, args=(window,), daemon=True).start()
+        if event == THREAD_EVENT:
+            cp(f'Data from the thread ', colors='white on purple', end='')
+            cp(f'{values[THREAD_EVENT]}', colors='white on red')
+    window.close()
+
+if __name__ == '__main__':
+    main()
+```
 
 ### Multithreaded Programs
 
@@ -2703,7 +2791,25 @@ theme_previewer
 
 The first step is to create the window object using the desired window customizations.  
 
-Note - There is no direct support for "**modal windows**" in PySimpleGUI.  All windows are accessible at all times unless you manually change the windows' settings.
+## Modal Windows (only applied to tkinter port currently
+)
+NOTE - as of PySimpleGUI 4.25.0 Modal Windows are supported!  By default the `popup` windows that block will be marked Modal by default.  This is a somewhat risky change because your expisting applications will behave differently. However, in theory, you shouldn't have been interacting with other windows while the popup is active.  All of those actions are at best queued.  It's implementation dependent.
+
+"Modal" in this case means that you must close this "modal" window before you will be able to interact with windows created before this window.  Think about an "about" box.  You normally have to close this little popup in most programs.  So, that's what PySimpleGUI is doing now.
+
+## Making your window modal
+
+To make a Modal  Wio=ndow you have 2 options.  
+
+1. Set the `moodel=True` parameter in your Window calls.
+
+2. Call the method `Window.make_modal()` to chance a window from non-modal to modal.  There is no modal to non-modal.  Don't see the need for one. If one comes up, sure!
+
+### Disabling modal windows
+
+Popups that block are the only windows that have modal on by default. There is a modal parameter than you  can set to False to turn it off.
+
+For the earlier than 4.25.0 and other ports of PySimpleGUI There is no direct support for "**modal windows**" in PySimpleGUI.  All windows are accessible at all times unless you manually change the windows' settings.
 
 **IMPORTANT** - Many of the `Window` methods require you to either call `Window.read` or `Window.Finalize` (or set `finalize=True` in your `Window` call) before you call the method. This is because these 2 calls are what actually creates the window using the underlying GUI Framework.  Prior to one of those calls, the methods are likely to crash as they will not yet have their underlying widgets created.
 
@@ -3328,6 +3434,150 @@ Then to turn off return values for that element, the `Multiline` element would b
 
 ```python
 sg.Multiline(size=(40,8), key='-MLINE-' + sg.WRITE_ONLY_KEY)
+```
+
+## Key Errors - Key error recovery algorithm
+
+In the primary (tkinter) port of PySimpleGUI, starting in version 4.27.0 (not yet on PyPI... but available on GitHub as 4.26.0.14+)
+
+There are now 3 controls over key error handling and a whole new era of key reporting.
+
+```python
+SUPPRESS_ERROR_POPUPS = False
+SUPPRESS_RAISE_KEY_ERRORS = False
+SUPPRESS_KEY_GUESSING = False
+```
+
+You can modify these values by calling `set_options`.
+
+```python
+    sg.set_options(suppress_raise_key_errors=False, suppress_error_popups=False, suppress_key_guessing=False)
+```
+
+A basic definition of them are:
+`suppress_error_popups` - Disables error popups that are generated within PySimpleGUI itself to not be shown
+`suppress_raise_key_errors` - Disables raising a key error if a key or a close match are not found
+`suppress_key_guessing` - Disables the key guessing algorithm should you have a key error
+
+With the defaults left as defined (all `False`), here is how key errors work.
+
+This is the program being used in this example:
+
+```python
+import PySimpleGUI as sg
+
+def main():
+    sg.set_options(suppress_raise_key_errors=False, suppress_error_popups=False, suppress_key_guessing=False)
+
+    layout = [  [sg.Text('My Window')],
+                [sg.Input(k='-IN-'), sg.Text(size=(12,1), key='-OUT-')],
+                [sg.Button('Go'), sg.Button('Exit')]  ]
+
+    window = sg.Window('Window Title', layout, finalize=True)
+
+    while True:             # Event Loop
+        event, values = window.read()
+        print(event, values)
+        if event == sg.WIN_CLOSED or event == 'Exit':
+            break
+        window['-O U T'].update(values['-IN-'])
+    window.close()
+
+def func():
+
+    main()
+
+func()
+```
+
+A few things to note about it:
+
+* There are multiple levels of functions being called, not just a flat program
+* There are 2 keys explicitly defined, both are text at this point (we'll change them later)
+* There are 2 lookups happening, one with `window` the other with `values`
+
+This key error recovery algorithm only applies to element keys being used to lookup keys inside of windows.  The `values` key lookup is a plain dictionary and so nothing fancy is done for that lookup.
+
+### Example 1 - Simple text string misspelling
+
+In our example, this line of code has an error:
+
+```python
+window['-O U T'].update(values['-IN-'])
+```
+
+There are multiple problems with the key `'-OUT-'`.  It is missing a dash and it has a bunch of extra spaces.
+
+When the program runs, you'll first see the layout with no apparent problems:
+
+![SNAG-0882](https://user-images.githubusercontent.com/46163555/88704649-60954800-d0dc-11ea-885a-1ebadba039b7.jpg)
+
+Clicking the OK button will cause the program to return from `window.read()` and thus hit our bad key.  The result will be a popup window that resembles this:
+
+![SNAG-0883](https://user-images.githubusercontent.com/46163555/88704635-5bd09400-d0dc-11ea-88a2-42e7386b076b.jpg)
+
+Note a few things about this error popup.  Your shown your bad key and you're also shown what you likely meant.  Additionally, you're shown the filename, the line number and the line of code itself that has the error.
+
+Because this error was recoverable, the program continues to run after you close the error popup.  The result is what you expect from this program... the output field is the same as your information input.
+
+![SNAG-0884](https://user-images.githubusercontent.com/46163555/88704691-71de5480-d0dc-11ea-8800-9379044a3f1f.jpg)
+
+### Example 2 - Tuple error
+
+Keys can be a variety of types, including tuples.  In this particular program we have a tuple specified in the layout and have used an incorrect tuple in the lookup.  Once again the recovery process worked and the program continued.
+
+![SNAG-0885](https://user-images.githubusercontent.com/46163555/88705188-2d9f8400-d0dd-11ea-9a91-f92cef9f6219.jpg)
+
+### Example 3 - No close match found
+
+In this example, as you can see in the error popup, there was such a mismatch that no substitution could be performed.  
+
+![SNAG-0886](https://user-images.githubusercontent.com/46163555/88705707-e6fe5980-d0dd-11ea-8fcc-bc024298705d.jpg)
+
+This is an unrecoverable error, so a key error exception is raised.
+
+```python
+
+Traceback (most recent call last):
+  File "C:/Users/mike/.PyCharmCE2019.1/config/scratches/scratch_978 - key error example.py", line 25, in <module>
+    func()
+  File "C:/Users/mike/.PyCharmCE2019.1/config/scratches/scratch_978 - key error example.py", line 23, in func
+    main()
+  File "C:/Users/mike/.PyCharmCE2019.1/config/scratches/scratch_978 - key error example.py", line 17, in main
+    window[(1,2,3)].update(values['-IN-'])
+  File "C:\Python\PycharmProjects\PSG\PySimpleGUI.py", line 8591, in __getitem__
+    return self.FindElement(key)
+  File "C:\Python\PycharmProjects\PSG\PySimpleGUI.py", line 7709, in FindElement
+    raise KeyError(key)
+KeyError: (1, 2, 3)
+```
+
+If you're running an IDE such as PyCharm, you can use the information from the assert to jump to the line of code in your IDE based on the crash data provided.
+
+### Choose Your Desired Combination
+
+There are enough controls on this error handling that you can control how you want your program to fail.  If you don't want any popups, and no guessing and would instead like to simply get an exception when the key error happens, then call `set_options` with this combination:
+
+```python
+    sg.set_options(suppress_raise_key_errors=False, suppress_error_popups=True, suppress_key_guessing=True)
+```
+
+This will cause Example #1 above to immediately get an exception when hitting the statement with the error.  Even though the guessing is turned off, you're still provided with the closest match to help with your debugging....
+
+```
+** Error looking up your element using the key:  -O U T The closest matching key:  -OUT-
+Traceback (most recent call last):
+  File "C:/Users/mike/.PyCharmCE2019.1/config/scratches/scratch_978 - key error example.py", line 25, in <module>
+    func()
+  File "C:/Users/mike/.PyCharmCE2019.1/config/scratches/scratch_978 - key error example.py", line 23, in func
+    main()
+  File "C:/Users/mike/.PyCharmCE2019.1/config/scratches/scratch_978 - key error example.py", line 17, in main
+    window['-O U T'].update(values['-IN-'])
+  File "C:\Python\PycharmProjects\PSG\PySimpleGUI.py", line 8591, in __getitem__
+    return self.FindElement(key)
+  File "C:\Python\PycharmProjects\PSG\PySimpleGUI.py", line 7709, in FindElement
+    raise KeyError(key)
+KeyError: '-O U T'
 ```
 
 ## Common Element Parameters
@@ -7321,6 +7571,163 @@ Selective control over tk 8.6.9 treeview color patch
 * Disabled the code that patched the problem with background colors for Tree and Table elements
 * Can enable the patched code by calling set_options
 	* To enable set parameter enable_treeview_869_patch = True (defaults to false)
+
+## 4.25.0 PySimpleGUI 17-Jul-2020
+
+Biggest / most impactful set of changes in a while (fingers crossed)
+Modal windows
+Multithreaded Window.write_event_value method
+stdout re-route to any Multiline
+table/tree highlights
+k element parameter
+
+* New "k" parameter for all elements. 
+	* Same as "key"
+	* Created so layouts can be even more compact if desired
+	* New docstring for keys (basically anything except a list)
+* Popups
+	* New text wrap behavior. Will wrap text between \n in user's string
+	* All popups are now "modal" unless they are non-blocking (can be turned off using new parameter)
+* New button color and table/tree highlight color format
+	* Colors can still be tuple (text, background)
+	* Can also be a single string with format "text on background" (e.g. "white on red")
+* Multiline
+	* Automatically refresh window when updating multiline or output elements
+	* For cprint use Multiline's autoscroll setting
+	* New autoscroll parameter in Multiline.print
+	* New parameters to make the print and cprint stuff much easier
+		* write_only=False (so that it's not returned when read)
+		* auto_refresh=False
+		* reroute_stdout=False
+		* reroute_stderr=False
+		* reroute_cprint=False (removes need to call the cprint cprint_set_output_destination function)
+* Table / Tree Elements
+	* Re-enabled the tk 8.6.9 background color fix again
+	* selected_row_colors=(None, None) - tuple or string
+	* Automatically sets the selected row color based on the theme colors! (uses the button color)
+	* Can use 2 other constants for colors
+		* OLD_TABLE_TREE_SELECTED_ROW_COLORS - ('#FFFFFF', '#4A6984') the old blueish color
+		* ALTERNATE_TABLE_AND_TREE_SELECTED_ROW_COLORS - (SystemHighlightText, SystemHighlight)
+	* Tree image caching happens at the element level now
+* Window	
+	* make_modal - new method to turn a window into a modal window
+	* modal parameter when window is created.  Default is False
+	* write_event_value - new method that can be called by threads!  This will "queue" an event and a value for the next window.read()
+	* Display an error popup if read a closed window 100+ times (stops you from eating 100% of the CPU time)
+	* was_closed method added - returns True if a window has been closed
+* Combo - don't select first entry if updated with a new set of values
+* Tooltip - fix for stuck-on tooltips
+* New theme_previewer with scrollbars. 3 new parameters	
+* cprint - now has all parameters shown in docstring versus using *args **kwargs	
+* New global variable __tclversion_detailed__ - string with full tkinter version (3 numbers instead of 2)
+* Warning is displayed if tcl version is found to be 8.5.
+
+## 4.26.0 PySimpleGUI 18-Jul-2020
+
+* Multi-threaded tkvar initialization location changed so that thread doesn't intialize it now
+* Removed thread key - no longer needed
+* Window.write_event_values - now requires both parms
+* Upgrade button typo
+
+## 4.27.4 PySimpleGUI 3-Aug-2020
+
+Multi-window support done right!
+New capabilities for printing, Multiline
+Main app additions
+Theme searching
+
+* read_all_windows - function that reads all currently open windows.
+	* Finally the efficient multi-window solution
+	* No longer need to do round-robin type scheduling
+	* Easily convert existing programs from single to multi-windows
+	* Demo programs with multi-window design patterns all updated
+	* Ideal for "floating palette / toolbar" window adds-ons
+	* Can read with timeout including timeout=0
+* theme_previewer
+	* search option
+	* button in main app
+	* reset to previous theme following preview
+* Sponsor button in main app
+* Theme previewer in main app
+* Progress bar 
+	* colors can use the single string "foreground on background" color format
+	* update_bar combined with update for a single update interface
+* Better element key error handling
+	* 3 options to control how lookup errors are handled
+	* popup now shows
+		* file, function, line #, actual line of code with error
+		* erroneous key provided
+		* best matching key
+	* will automatically try to continue with best matching key
+	* can assert with key error if desired (true by default)
+* fix for get item
+* Up/down arrow bindings for spinner if enabling events
+* Multiline 
+	* new justification parameter on creation and update
+	* print - justification parameter added
+* cprint - justification parameter added - note tricky to set color of single word but possible	
+* Added mousewheel for Linux return_keyboard_events enabled
+* Added get_globals function for extending easier
+* Refactored callbacks
+* Image element - can clear image by not setting any parameters when calling update
+* Column Element's Widget member variable now being set
+* Window's starting window location saved
+* Early experimental "Move all windows in sync" when using grab_anywhere (coming soon)
+* Fix for 3.4 (can't use f-strings)
+
+## 4.28.0 PySimpleGUI 3-Aug-2020
+
+Element pinning for invisibility!
+
+* Better visible/invisible handling
+	* pin - new function to place an element in a layout that will hold its position
+	* border_width added to Canvas and Graph (so that they will default to 0)
+* Combobox
+	* button color will match theme's button color
+	* background color set correctly when readonly indicated
+* Spin element
+	* spin button color set to background color of spinner
+	* spin arrow color automatically set to text color
+* Bad element key popup - fix for displaying correct line info in some situations
+
+## 4.29.0 PySimpleGUI 25-Aug-2020
+
+Custom titlebar capabilities (several new features required)
+Better Alignment
+Calendar button works again
+
+* Window.visiblity_changed now refreshes the window 
+* Added Column.contents_changed which will update the scrollbar so corrently match the contents
+* Separators expand only in 1 direction now
+* Added 8 SYMBOLS:
+	SYMBOL_SQUARE = '█'
+	SYMBOL_CIRCLE = '⚫'
+	SYMBOL_CIRCLE_OUTLINE = '◯'
+	SYMBOL_UP =    '▲'
+	SYMBOL_RIGHT = '►'
+	SYMBOL_LEFT =  '◄'
+	SYMBOL_DOWN =  '▼'
+	SYMBOL_X = '❎'
+* New dark themes - dark grey 8, dark grey 9, dark green 9, dark purple 7
+* When closing window no longer deletes the tkroot variable and rows but instead set to None
+* Changd no-titlebar code to use try/except. Previously removed for Mac due to tk 8.6.10 errors calling wm_overrideredirect
+* Fix for Column/window element justification
+* New vertical_alignment parm for Column, Frame, pin
+* New layout helper functions - vtop/vcenter/vbottom - Can pass an element or a row of elements
+* Fixed statusbar expansion
+* Added disabled button to theme previewer
+* Fixed grab anywhere stop motion bug - was setting position to None and causing error changed to event.x
+* Expanded main to include popup tests, theme tests, ability to hide tabs
+* Grab parameter for Text Element, Column Element
+* Added tclversion_detailed to get the detailed tkinter version
+* All themes changed the progress bar definition that had a "DEFAULT" indicator. New constant DEFAULT_PROGRESS_BAR_COMPUTE indicates the other theme colors should be used to create the progess bar colors.
+* Added expand_x and expand_y parameters to Columns
+* Fix for Calendar Button.  Still needs to be fixed for read_all_windows
+* Force focus when no-titlebar window. Needed for Raspberry Pi
+* Added Window.force_focus
+* No longer closes the hidden master window. Closing it caused a memory leak within tkinter
+* Disable close on one_line_progress_meter. There is a cancel button that will close the window
+* Changed back toplevel to no parent - was causing problems with timeout=0 windows
 
 ### Upcoming
 
