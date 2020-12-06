@@ -1,11 +1,16 @@
 #!/usr/bin/python3
-version = __version__ = "4.29.0.19 Unreleased\nAdded shink parameter to pin, added variable Window.maximized, added main_sdk_help_window function, theme DarkGrey10 added, no longer setting highlight thickness to 0 for buttons so that focus can be seen, new themes DarkGrey11 DarkGrey12 DarkGrey13 DarkGrey14, new user_settings APIs, added text parameter to Radio.update, echo_stdout_stderr parm added to Multiline and Output elements, added DarkBrown7 theme, user settings delete function, ver shortened version string, modal docstring fix in some popups, image parameter implemented in popup_scrolled, added Radio background & text colors to update, removed pad parms from DrawImage, added user_settings_file_exists, fixed blank entry with main program's theme previewer, added Python theme, added Window.set_min_size, error message function for soft errors, focus indicator for Button Checkbox Radio using highlights, added Window to SDK reference window, added theme swatch previewer"
+version = __version__ = "4.32.1.3 Unreleased\nRemoved faking timeout message as it can happen when autoclose used, CLOSE_ATTEMPED_EVENT, fill_color added to draw_arc"
+
+__version__ = version.split()[0]    # For PEP 396 and PEP 345
 
 # The shortened version of version
 try:
     ver = version.split(' ')[0]
 except:
     ver = ''
+
+# __version__ = version
+
 port = 'PySimpleGUI'
 
 #  888888ba           .d88888b  oo                     dP           .88888.  dP     dP dP
@@ -299,7 +304,6 @@ OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR = ('white', BLUES[0])
 # The "default PySimpleGUI theme"
 OFFICIAL_PYSIMPLEGUI_THEME = CURRENT_LOOK_AND_FEEL = 'Dark Blue 3'
 
-
 DEFAULT_ERROR_BUTTON_COLOR = ("#FFFFFF", "#FF0000")
 DEFAULT_BACKGROUND_COLOR = None
 DEFAULT_ELEMENT_BACKGROUND_COLOR = None
@@ -404,6 +408,7 @@ MESSAGE_BOX_LINE_WIDTH = 60
 # Key representing a Read timeout
 EVENT_TIMEOUT = TIMEOUT_EVENT = TIMEOUT_KEY = '__TIMEOUT__'
 WIN_CLOSED = WINDOW_CLOSED = None
+WINDOW_CLOSE_ATTEMPTED_EVENT = WIN_X_EVENT = WIN_CLOSE_ATTEMPTED_EVENT = '-WINDOW CLOSE ATTEMPTED-'
 
 # Key indicating should not create any return values for element
 WRITE_ONLY_KEY = '__WRITE ONLY__'
@@ -418,6 +423,8 @@ SUPPRESS_RAISE_KEY_ERRORS = False
 SUPPRESS_KEY_GUESSING = False
 
 ENABLE_TREEVIEW_869_PATCH = True
+ENABLE_MAC_NOTITLEBAR_PATCH = False
+
 OLD_TABLE_TREE_SELECTED_ROW_COLORS = ('#FFFFFF', '#4A6984')
 ALTERNATE_TABLE_AND_TREE_SELECTED_ROW_COLORS = ('SystemHighlightText', 'SystemHighlight')
 
@@ -685,8 +692,10 @@ class Element():
         self.user_bind_dict = {}  # Used when user defines a tkinter binding using bind method - convert bind string to key modifier
         self.user_bind_event = None  # Used when user defines a tkinter binding using bind method - event data from tkinter
         self.pad_used    = (0,0)        # the amount of pad used when was inserted into the layout
-
-
+        if not hasattr(self, 'DisabledTextColor'):
+            self.DisabledTextColor = None
+        if not hasattr(self, 'ItemFont'):
+            self.ItemFont = None
 
     def _RightClickMenuCallback(self, event):
         """
@@ -1165,7 +1174,7 @@ class InputText(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
-        self.DefaultText = default_text
+        self.DefaultText = default_text if default_text is not None else ''
         self.PasswordCharacter = password_char
         bg = background_color if background_color is not None else DEFAULT_INPUT_ELEMENTS_COLOR
         fg = text_color if text_color is not None else DEFAULT_INPUT_TEXT_COLOR
@@ -1320,8 +1329,11 @@ class Combo(Element):
 
     def Update(self, value=None, values=None, set_to_index=None, disabled=None, readonly=None, font=None, visible=None):
         """
-        Changes some of the settings for the Combo Element. Must call `Window.Read` or `Window.Finalize` prior
-        :param value: change which value is current selected hased on new list of previous list of choices
+        Changes some of the settings for the Combo Element. Must call `Window.Read` or `Window.Finalize` prior.
+        Note that the state can be in 3 states only.... enabled, disabled, readonly even
+        though more combinations are available. The easy way to remember is that if you
+        change the readonly parameter then you are enabling the element.
+        :param value: change which value is current selected based on new list of previous list of choices
         :type value: (Any)
         :param values: change list of choices
         :type values: List[Any]
@@ -1329,7 +1341,7 @@ class Combo(Element):
         :type set_to_index: (int)
         :param disabled: disable or enable state of the element
         :type disabled: (bool)
-        :param readonly: if True make element readonly (user cannot change any choices)
+        :param readonly: if True make element readonly (user cannot change any choices). Enables the element if either choice are made.
         :type readonly: (bool)
         :param font: specifies the font family, size, etc
         :type font: Union[str, Tuple[str, int]]
@@ -1369,9 +1381,9 @@ class Combo(Element):
         elif readonly is False:
             self.Readonly = False
             self.TKCombo['state'] = 'enable'
-        if disabled == True:
+        if disabled is True:
             self.TKCombo['state'] = 'disable'
-        elif disabled == False:
+        elif disabled is False and not readonly:
             self.TKCombo['state'] = 'enable'
         if font is not None:
             self.TKCombo.configure(font=font)
@@ -2052,7 +2064,7 @@ class Spin(Element):
     A spinner with up/down buttons and a single line of text. Choose 1 values from list
     """
 
-    def __init__(self, values, initial_value=None, disabled=False, change_submits=False, enable_events=False,
+    def __init__(self, values, initial_value=None, disabled=False, change_submits=False, enable_events=False, readonly=False,
                  size=(None, None), auto_size_text=None, font=None, background_color=None, text_color=None, key=None, k=None, pad=None, tooltip=None, visible=True, metadata=None):
         """
         :param values: List of valid values
@@ -2065,6 +2077,8 @@ class Spin(Element):
         :type change_submits: (bool)
         :param enable_events: Turns on the element specific events. Spin events happen when an item changes
         :type enable_events: (bool)
+        :param readonly: Turns on the element specific events. Spin events happen when an item changes
+        :type readonly: (bool)
         :param size: (width, height) width = characters-wide, height = rows-high
         :type size: (int, int)
         :param auto_size_text: if True will size the element to match the length of the text
@@ -2094,6 +2108,7 @@ class Spin(Element):
         self.ChangeSubmits = change_submits or enable_events
         self.TKSpinBox = self.Widget = None  # type: tk.Spinbox
         self.Disabled = disabled
+        self.Readonly = readonly
         bg = background_color if background_color else DEFAULT_INPUT_ELEMENTS_COLOR
         fg = text_color if text_color is not None else DEFAULT_INPUT_TEXT_COLOR
         key = key if key is not None else k
@@ -2102,15 +2117,20 @@ class Spin(Element):
                          key=key, pad=pad, tooltip=tooltip, visible=visible, metadata=metadata)
         return
 
-    def Update(self, value=None, values=None, disabled=None, visible=None):
+    def Update(self, value=None, values=None, disabled=None, readonly=None, visible=None):
         """
         Changes some of the settings for the Spin Element. Must call `Window.Read` or `Window.Finalize` prior
+        Note that the state can be in 3 states only.... enabled, disabled, readonly even
+        though more combinations are available. The easy way to remember is that if you
+        change the readonly parameter then you are enabling the element.
         :param value: set the current value from list of choices
         :type value: (Any)
         :param values: set available choices
         :type values: List[Any]
-        :param disabled: disable or enable state of the element
+        :param disabled: disable. Note disabled and readonly cannot be mixed. It must be one OR the other
         :type disabled: (bool)
+        :param readonly: make element readonly.  Note disabled and readonly cannot be mixed. It must be one OR the other
+        :type readonly: (bool)
         :param visible: control visibility of element
         :type visible: (bool)
         """
@@ -2129,6 +2149,18 @@ class Spin(Element):
                 self.DefaultValue = value
             except:
                 pass
+
+        if readonly:
+            self.Readonly = True
+            self.TKSpinBox['state'] = 'readonly'
+        elif readonly is False:
+            self.Readonly = False
+            self.TKSpinBox['state'] = 'enable'
+        if disabled is True:
+            self.TKSpinBox['state'] = 'disable'
+        elif disabled is False and not readonly:
+            self.TKSpinBox['state'] = 'enable'
+
         if disabled is not None:
             self.TKSpinBox.configure(state='disabled' if disabled else 'normal')
         # if disabled == True:
@@ -2166,7 +2198,12 @@ class Spin(Element):
         :return: The currently visible entry
         :rtype: (Any)
         """
-        return self.TKStringVar.get()
+        value = self.TKStringVar.get()
+        for v in self.Values:
+            if str(v) == value:
+                value = v
+                break
+        return value
 
     get = Get
     set_focus = Element.SetFocus
@@ -2223,11 +2260,11 @@ class Multiline(Element):
         :type auto_refresh: (bool)
         :param reroute_stdout: If True then all output to stdout will be output to this element
         :type reroute_stdout: (bool)
-        :param reroute_stderr: If True then all output to stdout will be output to this element
+        :param reroute_stderr: If True then all output to stderr will be output to this element
         :type reroute_stderr: (bool)
         :param reroute_cprint: If True your cprint calls will output to this element. It's the same as you calling cprint_set_output_destination
         :type reroute_cprint: (bool)
-        :param echo_stdout_stderr: If True then output to stdout will be output to this element AND also to the normal console location
+        :param echo_stdout_stderr: If True then output to stdout and stderr will be output to this element AND also to the normal console location
         :type echo_stdout_stderr: (bool)
         :param focus: if True initial focus will go to this element
         :type focus: (bool)
@@ -2294,6 +2331,10 @@ class Multiline(Element):
         :type text_color: (str)
         :param background_color: color of background
         :type background_color: (str)
+        :param text_color_for_value: color of the new text being added (the value paramter)
+        :type text_color_for_value: (str)
+        :param background_color_for_value: color of the new background of the text being added (the value paramter)
+        :type background_color_for_value: (str)
         :param visible: set visibility state of the element
         :type visible: (bool)
         :param autoscroll: if True then contents of element are scrolled down when new text is added to the end
@@ -2405,7 +2446,7 @@ class Multiline(Element):
         :param justification: text justification. left, right, center. Can use single characters l, r, c. Sets only for this value, not entire element
         :type justification: (str)
         """
-        _print_to_element(self, *args, end=end, sep=sep, text_color=text_color, background_color=background_color, justification=justification )
+        _print_to_element(self, *args, end=end, sep=sep, text_color=text_color, background_color=background_color, justification=justification, autoscroll=True )
 
 
     def reroute_stdout_to_here(self):
@@ -3046,7 +3087,7 @@ class Button(Element):
     """
 
     def __init__(self, button_text='', button_type=BUTTON_TYPE_READ_FORM, target=(None, None), tooltip=None,
-                 file_types=(("ALL Files", "*.*"),), initial_folder=None, disabled=False, change_submits=False,
+                 file_types=(("ALL Files", "*.*"),), initial_folder=None, default_extension='', disabled=False, change_submits=False,
                  enable_events=False, image_filename=None, image_data=None, image_size=(None, None),
                  image_subsample=None, border_width=None, size=(None, None), auto_size_button=None, button_color=None, disabled_button_color=None,
                  highlight_colors=None, use_ttk_buttons=None, font=None, bind_return_key=False, focus=False, pad=None, key=None, k=None, visible=True, metadata=None):
@@ -3063,6 +3104,8 @@ class Button(Element):
         :type file_types: Tuple[Tuple[str, str], ...]
         :param initial_folder: starting path for folders and files
         :type initial_folder: (str)
+        :param default_extension:  If no extension entered by user, add this to filename (only used in saveas dialogs)
+        :type default_extension: (str)
         :param disabled: If True button will be created disabled
         :type disabled: (bool)
         :param change_submits: DO NOT USE. Only listed for backwards compat - Use enable_events instead
@@ -3084,7 +3127,7 @@ class Button(Element):
         :param auto_size_button: if True the button size is sized to fit the text
         :type auto_size_button: (bool)
         :param button_color: of button. Easy to remember which is which if you say "ON" between colors. "red" on "green".
-        :type button_color: Tuple[str, str] or str
+        :type button_color: Tuple[str, str] or str or None
         :param disabled_button_color: colors to use when button is disabled (text, background). Use None for a color if don't want to change. Only ttk buttons support both text and background colors. tk buttons only support changing text color
         :type disabled_button_color: Tuple[str, str]
         :param highlight_colors: colors to use when button has focus (highlight, background). None will use computed colors. Only used by Linux and only for non-TTK button
@@ -3154,6 +3197,7 @@ class Button(Element):
         self.calendar_title = ''
         self.calendar_selection = ''
         self.InitialFolder = initial_folder
+        self.DefaultExtension = default_extension
         self.Disabled = disabled
         self.ChangeSubmits = change_submits or enable_events
         self.UseTtkButtons = use_ttk_buttons
@@ -3325,11 +3369,10 @@ class Button(Element):
                 self.TKStringVar.set(file_name)
         elif self.BType == BUTTON_TYPE_SAVEAS_FILE:
             if sys.platform == 'darwin':
-                file_name = tk.filedialog.asksaveasfilename(
+                file_name = tk.filedialog.asksaveasfilename(defaultextension=self.DefaultExtension,
                     initialdir=self.InitialFolder)  # show the 'get file' dialog box
             else:
-                file_name = tk.filedialog.asksaveasfilename(filetypes=filetypes,
-                                                            initialdir=self.InitialFolder, parent=self.ParentForm.TKroot)  # show the 'get file' dialog box
+                file_name = tk.filedialog.asksaveasfilename(filetypes=filetypes,defaultextension=self.DefaultExtension, initialdir=self.InitialFolder, parent=self.ParentForm.TKroot)  # show the 'get file' dialog box
             if file_name:
                 strvar.set(file_name)
                 self.TKStringVar.set(file_name)
@@ -3467,7 +3510,7 @@ class Button(Element):
         if text is not None:
             self.TKButton.configure(text=text)
             self.ButtonText = text
-        if button_color != (None, None):
+        if button_color != (None, None) and button_color != COLOR_SYSTEM_DEFAULT:
             if isinstance(button_color, str):
                 try:
                     button_color = button_color.split(' on ')
@@ -3519,7 +3562,7 @@ class Button(Element):
             self.TKButton.pack_forget()
         elif visible is True:
             self.TKButton.pack(padx=self.pad_used[0], pady=self.pad_used[1])
-        if disabled_button_color != (None, None):
+        if disabled_button_color != (None, None) and disabled_button_color != COLOR_SYSTEM_DEFAULT:
             if not self.UseTtkButtons:
                 self.TKButton['disabledforeground'] = disabled_button_color[0]
             else:
@@ -3571,7 +3614,7 @@ class ButtonMenu(Element):
 
     def __init__(self, button_text, menu_def, tooltip=None, disabled=False,
                  image_filename=None, image_data=None, image_size=(None, None), image_subsample=None, border_width=None,
-                 size=(None, None), auto_size_button=None, button_color=None, font=None, pad=None, key=None, k=None, tearoff=False, visible=True, metadata=None):
+                 size=(None, None), auto_size_button=None, button_color=None, text_color=None, background_color=None, disabled_text_color=None, font=None, item_font=None, pad=None, key=None, k=None, tearoff=False, visible=True, metadata=None):
         """
         :param button_text: Text to be displayed on the button
         :type button_text: (str)
@@ -3597,8 +3640,16 @@ class ButtonMenu(Element):
         :type auto_size_button: (bool)
         :param button_color: of button. Easy to remember which is which if you say "ON" between colors. "red" on "green"
         :type button_color: Tuple[str, str] or str
+        :param background_color: color of the background
+        :type background_color: (str)
+        :param text_color: element's text color. Can be in #RRGGBB format or a color name "black"
+        :type text_color: (str)
+        :param disabled_text_color: color to use for text when item is disabled. Can be in #RRGGBB format or a color name "black"
+        :type disabled_text_color: (str)
         :param font: specifies the font family, size, etc
         :type font: Union[str, Tuple[str, int]]
+        :param item_font: specifies the font family, size, etc, for the menu items
+        :type item_font: Union[str, Tuple[str, int]]
         :param pad: Amount of padding to put around element (left/right, top/bottom) or ((left, right), (top, bottom))
         :type pad: (int, int) or ((int, int),(int,int)) or (int,(int,int)) or  ((int, int),int)
         :param key: Used with window.FindElement and with return values to uniquely identify this element to uniquely identify this element
@@ -3617,9 +3668,13 @@ class ButtonMenu(Element):
         self.AutoSizeButton = auto_size_button
         self.ButtonText = button_text
         self.ButtonColor = button_color if button_color else DEFAULT_BUTTON_COLOR
-        self.TextColor = self.ButtonColor[0]
-        self.BackgroundColor = self.ButtonColor[1]
-        self.BorderWidth = border_width
+        # self.TextColor = self.ButtonColor[0]
+        # self.BackgroundColor = self.ButtonColor[1]
+        self.BackgroundColor = background_color if background_color is not None else theme_input_background_color()
+        self.TextColor = text_color if text_color is not None else theme_input_text_color()
+        self.DisabledTextColor = disabled_text_color if disabled_text_color is not None else COLOR_SYSTEM_DEFAULT
+        self.ItemFont = item_font
+        self.BorderWidth = border_width if border_width is not None else DEFAULT_BORDER_WIDTH
         self.ImageFilename = image_filename
         self.ImageData = image_data
         self.ImageSize = image_size
@@ -4367,7 +4422,7 @@ class Graph(Element):
 
         return id
 
-    def DrawArc(self, top_left, bottom_right, extent, start_angle, style=None, arc_color='black', line_width=1):
+    def DrawArc(self, top_left, bottom_right, extent, start_angle, style=None, arc_color='black', line_width=1, fill_color=None):
         """
         Draws different types of arcs.  Uses a "bounding box" to define location
         :param top_left: the top left point of bounding rectangle
@@ -4382,6 +4437,8 @@ class Graph(Element):
         :type style: (str)
         :param arc_color: color to draw arc with
         :type arc_color: (str)
+        :param fill_color: color to fill the area
+        :type fill_color: (str)
         :return: id returned from tkinter that you'll need if you want to manipulate the arc
         :rtype: Union[int, None]
         """
@@ -4395,8 +4452,9 @@ class Graph(Element):
         try:  # in case closed with X
             id = self._TKCanvas2.create_arc(converted_top_left[0], converted_top_left[1], converted_bottom_right[0],
                                             converted_bottom_right[1], extent=extent, start=start_angle, style=tkstyle,
-                                            outline=arc_color, width=line_width)
-        except:
+                                            outline=arc_color, width=line_width, fill=fill_color)
+        except Exception as e:
+            print('Error encountered drawing arc.',e)
             id = None
         return id
 
@@ -6285,12 +6343,16 @@ class Menu(Element):
     menu is shown.  The key portion is returned as part of the event.
     """
 
-    def __init__(self, menu_definition, background_color=None, size=(None, None), tearoff=False, font=None, pad=None, key=None, k=None, visible=True, metadata=None):
+    def __init__(self, menu_definition, background_color=None, text_color=None, disabled_text_color=None, size=(None, None), tearoff=False, font=None, pad=None, key=None, k=None, visible=True, metadata=None):
         """
-        :param menu_definition: ???
+        :param menu_definition: The Menu definition specified using lists (docs explain the format)
         :type menu_definition: List[List[Tuple[str, List[str]]]
         :param background_color: color of the background
         :type background_color: (str)
+        :param text_color: element's text color. Can be in #RRGGBB format or a color name "black"
+        :type text_color: (str)
+        :param disabled_text_color: color to use for text when item is disabled. Can be in #RRGGBB format or a color name "black"
+        :type disabled_text_color: (str)
         :param size: Not used in the tkinter port
         :type size: (int, int)
         :param tearoff: if True, then can tear the menu off from the window ans use as a floating window. Very cool effect
@@ -6309,14 +6371,17 @@ class Menu(Element):
         :type metadata: (Any)
         """
 
-        self.BackgroundColor = background_color if background_color is not None else DEFAULT_BACKGROUND_COLOR
+        self.BackgroundColor = background_color if background_color is not None else theme_input_background_color()
+        self.TextColor = text_color if text_color is not None else theme_input_text_color()
+        self.DisabledTextColor = disabled_text_color if disabled_text_color is not None else COLOR_SYSTEM_DEFAULT
         self.MenuDefinition = menu_definition
         self.Widget = self.TKMenu = None  # type: tk.Menu
         self.MenuItemChosen = None
         key = key if key is not None else k
 
-        super().__init__(ELEM_TYPE_MENUBAR, background_color=background_color, size=size, pad=pad, key=key,
-                         visible=visible, font=font, metadata=metadata)
+
+        super().__init__(ELEM_TYPE_MENUBAR, background_color=self.BackgroundColor, text_color=self.TextColor, size=size, pad=pad, key=key, visible=visible, font=font, metadata=metadata)
+        # super().__init__(ELEM_TYPE_MENUBAR, background_color=COLOR_SYSTEM_DEFAULT, text_color=COLOR_SYSTEM_DEFAULT, size=size, pad=pad, key=key, visible=visible, font=None, metadata=metadata)
 
         self.Tearoff = tearoff
 
@@ -7060,9 +7125,9 @@ class Window:
     """
     NumOpenWindows = 0
     _user_defined_icon = None
-    hidden_master_root = None
+    hidden_master_root = None       # type: tk.Tk
     _animated_popup_dict = {}
-    _active_windows = {}
+    _active_windows = {}            # type: Dict[Window:tk.Tk()]
     _move_all_windows = False            # if one window moved, they will move
     _window_that_exited = None          # type: Window
     _root_running_mainloop = None       # type: tk.Tk()    # (may be the hidden root or a window's root)
@@ -7084,7 +7149,9 @@ class Window:
                  alpha_channel=1, return_keyboard_events=False, use_default_focus=True, text_justification=None,
                  no_titlebar=False, grab_anywhere=False, keep_on_top=False, resizable=False, disable_close=False,
                  disable_minimize=False, right_click_menu=None, transparent_color=None, debugger_enabled=True,
-                 finalize=False, element_justification='left', ttk_theme=None, use_ttk_buttons=None, modal=False, metadata=None):
+                 right_click_menu_background_color=None, right_click_menu_text_color=None, right_click_menu_disabled_text_color=None,
+                 right_click_menu_font=None,
+                 finalize=False, element_justification='left', ttk_theme=None, use_ttk_buttons=None, modal=False, enable_close_attempted_event=False, metadata=None):
         """
         :param title: The title that will be displayed in the Titlebar and on the Taskbar
         :type title: (str)
@@ -7150,6 +7217,14 @@ class Window:
         :type transparent_color: (str)
         :param debugger_enabled: If True then the internal debugger will be enabled
         :type debugger_enabled: (bool)
+        :param right_click_menu_background_color: Background color for right click menus
+        :type right_click_menu_background_color: (str)
+        :param right_click_menu_text_color: Text color for right click menus
+        :type right_click_menu_text_color: (str)
+        :param right_click_menu_disabled_text_color: Text color for disabled right click menu items
+        :type right_click_menu_disabled_text_color: (str)
+        :param right_click_menu_font: Font for right click menus
+        :type right_click_menu_font: Union[str, Tuple[str, int]]
         :param finalize: If True then the Finalize method will be called. Use this rather than chaining .Finalize for cleaner code
         :type finalize: (bool)
         :param element_justification: All elements in the Window itself will have this justification 'left', 'right', 'center' are valid values
@@ -7160,6 +7235,8 @@ class Window:
         :type use_ttk_buttons: (bool)
         :param modal: If True then this window will be the only window a user can interact with until it is closed
         :type modal: (bool)
+        :param enable_close_attempted_event: If True then the window will not close when "X" clicked. Instead an event WINDOW_CLOSE_ATTEMPTED_EVENT if returned from window.read
+        :type enable_close_attempted_event: (bool)
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
@@ -7247,7 +7324,14 @@ class Window:
         self.config_count = 0
         self.saw_00 = False
         self.maximized = False
-        
+        self.right_click_menu_background_color = right_click_menu_background_color if right_click_menu_background_color is not None else theme_input_background_color()
+        self.right_click_menu_text_color = right_click_menu_text_color if right_click_menu_text_color is not None else theme_input_text_color()
+        self.right_click_menu_disabled_text_color = right_click_menu_disabled_text_color if right_click_menu_disabled_text_color is not None else COLOR_SYSTEM_DEFAULT
+        self.right_click_menu_font = right_click_menu_font if right_click_menu_font is not None else self.Font
+        self.auto_close_timer_needs_starting = False
+        self.finalize_in_progress = False
+        self.close_destroys_window = not enable_close_attempted_event if enable_close_attempted_event is not None else None
+
         if layout is not None and type(layout) not in (list, tuple):
             warnings.warn('Your layout is not a list or tuple... this is not good!')
 
@@ -7552,7 +7636,7 @@ class Window:
             window = self
             if window:
                 if window.NonBlocking:
-                    self.CloseNonBlockingForm()
+                    self.Close()
                 else:
                     window._Close()
                     self.TKroot.quit()
@@ -7644,6 +7728,8 @@ class Window:
             results = self._read(timeout=timeout, timeout_key=timeout_key)
             # Post processing for Calendar Chooser Button
             try:
+                if results[0] == timeout_key:   # if a timeout, then not a calendar button
+                    break
                 elem = self.find_element(results[0], silent_on_error=True)    # get the element that caused the event
                 if elem.Type == ELEM_TYPE_BUTTON:
                     if elem.BType == BUTTON_TYPE_CALENDAR_CHOOSER:
@@ -7677,6 +7763,15 @@ class Window:
         :return: (event, values) (event or timeout_key or None, Dictionary of values or List of values from all elements in the Window)
         :rtype: Tuple[(Any), Union[Dict[Any:Any]], List[Any], None]
         """
+
+        # if there are events in the thread event queue, then return those events before doing anything else.
+        if self._queued_thread_event_available():
+            self.ReturnValues = results = _BuildResults(self, False, self)
+            return results
+
+        if self.finalize_in_progress and self.auto_close_timer_needs_starting:
+            self._start_autoclose_timer()
+            self.auto_close_timer_needs_starting = False
 
         timeout = int(timeout) if timeout is not None else None
         if timeout == 0:  # timeout of zero runs the old readnonblocking
@@ -7791,8 +7886,8 @@ class Window:
             if not self.XFound and self.Timeout != 0 and self.Timeout is not None and self.ReturnValues[
                 0] is None:  # Special Qt case because returning for no reason so fake timeout
                 self.ReturnValues = self.TimeoutKey, self.ReturnValues[1]  # fake a timeout
-            elif not self.XFound and self.ReturnValues[0] is None:  # TODO HIGHLY EXPERIMENTAL... added due to tray icon interaction
-                print("*** Faking timeout ***")
+            elif not self.XFound and self.ReturnValues[0] is None:  # Return a timeout event... can happen when autoclose used on another window
+                # print("*** Faking timeout ***")
                 self.ReturnValues = self.TimeoutKey, self.ReturnValues[1]  # fake a timeout
             return self.ReturnValues
 
@@ -7832,8 +7927,9 @@ class Window:
         return _BuildResults(self, False, self)
 
 
-
-
+    def _start_autoclose_timer(self):
+        duration = DEFAULT_AUTOCLOSE_TIME if self.AutoCloseDuration is None else self.AutoCloseDuration
+        self.TKAfterID = self.TKroot.after(int(duration * 1000), self._AutoCloseAlarmCallback)
 
 
     def Finalize(self):
@@ -7848,7 +7944,12 @@ class Window:
 
         if self.TKrootDestroyed:
             return self
+        self.finalize_in_progress = True
+
         self.Read(timeout=1)
+
+        if self.AutoClose:
+            self.auto_close_timer_needs_starting = True
         # add the window to the list of active windows
         Window._active_windows[self] = Window.hidden_master_root
         return self
@@ -8420,19 +8521,24 @@ class Window:
         # print('Got closing callback', self.DisableClose)
         if self.DisableClose:
             return
-        self.XFound = True
         if self.CurrentlyRunningMainloop:  # quit if this is the current mainloop, otherwise don't quit!
             _exit_mainloop(self)
-            # self.TKroot.quit()  # kick the users out of the mainloop
-            self.TKroot.destroy()  # destroy this window
-            self.RootNeedsDestroying = True
-            self.TKrootDestroyed = True
+            if self.close_destroys_window:
+                self.TKroot.destroy()  # destroy this window
+                self.TKrootDestroyed = True
+                self.XFound = True
+            else:
+                self.LastButtonClicked = '-WINDOW CLOSE ATTEMPTED-'
         elif Window._root_running_mainloop == Window.hidden_master_root:
             _exit_mainloop(self)
         else:
-            self.TKroot.destroy()   # destroy this window
+            if self.close_destroys_window:
+                self.TKroot.destroy()   # destroy this window
+                self.XFound = True
+            else:
+                self.LastButtonClicked = '-WINDOW CLOSE ATTEMPTED-'
+        if self.close_destroys_window:
             self.RootNeedsDestroying = True
-        self.RootNeedsDestroying = True
 
     def Disable(self):
         """
@@ -8785,6 +8891,20 @@ class Window:
 
 
 
+    def set_cursor(self, cursor):
+        """
+        Sets the cursor for the window.
+        :param cursor: The tkinter cursor name
+        :type cursor: (str)
+        """
+        if not self._is_window_created():
+            return
+        try:
+            self.TKroot.config(cursor=cursor)
+        except Exception as e:
+            print('Warning bad cursor specified ', cursor)
+            print(e)
+
     def _window_tkvar_changed_callback(self, event, *args):
         """
         Internal callback function for when the thread
@@ -8792,12 +8912,13 @@ class Window:
         :param event: Information from tkinter about the callback
 
         """
+        # print('Thread callback info')
+        # print(event)
+        # trace_details = traceback.format_stack()
+        # print(''.join(trace_details))
         if self._queued_thread_event_available():
             self.FormRemainedOpen = True
-            # if self.CurrentlyRunningMainloop:
-            #     self.TKroot.quit()  # kick the users out of the mainloop
             _exit_mainloop(self)
-
 
 
     def _create_thread_queue(self):
@@ -8872,6 +8993,20 @@ class Window:
             return
 
         self.multi_window_return_values_queue.put(item=(window, event, value))
+
+
+
+
+    @property
+    def key_dict(self):
+        """
+        Returns a dictionary with all keys and their corresponding elements
+        { key : Element }
+        :return: Dictionary of keys and elements
+        :rtype: Dict[Any:Element]
+        """
+        return self.AllKeysDict
+
 
 
     # def __enter__(self):
@@ -8960,6 +9095,8 @@ class Window:
     size = Size
     un_hide = UnHide
     VisibilityChanged = visibility_changed
+    CloseNonBlocking = Close
+    CloseNonBlockingForm = Close
 
     #
     # def __exit__(self, *a):
@@ -8983,8 +9120,6 @@ class Window:
 
 
 FlexForm = Window
-Window.CloseNonBlockingForm = Window.Close
-Window.CloseNonBlocking = Window.Close
 
 def _exit_mainloop(exiting_window):
     # print(f'Checking exit window = {exiting_window.Title}',
@@ -9027,6 +9162,12 @@ def read_all_windows(timeout=None, timeout_key=TIMEOUT_KEY):
     if len(Window._active_windows) == 0:
         return None, WIN_CLOSED, None
 
+    # first see if any queued events are waiting for any of the windows
+    for window in Window._active_windows.keys():
+        if window._queued_thread_event_available():
+            _BuildResults(window, False, window)
+            event, values = window.ReturnValues
+            return window, event, values
 
     Window._root_running_mainloop = Window.hidden_master_root
     Window._timeout_key = timeout_key
@@ -9625,7 +9766,7 @@ def FilesBrowse(button_text='Browse', target=(ThisRow, -1), file_types=(("ALL Fi
 
 # -------------------------  FILE BROWSE Element lazy function  ------------------------- #
 def FileSaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL Files", "*.*"),), initial_folder=None,
-               disabled=False, tooltip=None, size=(None, None), auto_size_button=None, button_color=None,
+               default_extension='', disabled=False, tooltip=None, size=(None, None), auto_size_button=None, button_color=None,
                change_submits=False, enable_events=False, font=None,
                pad=None, key=None, k=None, metadata=None):
     """
@@ -9635,7 +9776,10 @@ def FileSaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL
     :param target: key or (row,col) target for the button (Default value = (ThisRow, -1))
     :param file_types:  (Default value = (("ALL Files", "*.*")))
     :type file_types: Tuple[Tuple[str, str], ...]
+    :param default_extension:  If no extension entered by user, add this to filename (only used in saveas dialogs)
+    :type default_extension: (str)
     :param initial_folder:  starting path for folders and files
+    :type initial_folder: (str)
     :param disabled: set disable state for element (Default = False)
     :type disabled: (bool)
     :param tooltip: text, that will appear when mouse hovers over the element
@@ -9662,13 +9806,13 @@ def FileSaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL
     :rtype: (Button)
     """
     return Button(button_text=button_text, button_type=BUTTON_TYPE_SAVEAS_FILE, target=target, file_types=file_types,
-                  initial_folder=initial_folder, tooltip=tooltip, size=size, disabled=disabled,
+                  initial_folder=initial_folder, default_extension=default_extension, tooltip=tooltip, size=size, disabled=disabled,
                   auto_size_button=auto_size_button, button_color=button_color, change_submits=change_submits,
                   enable_events=enable_events, font=font, pad=pad, key=key, k=k, metadata=metadata)
 
 
 # -------------------------  SAVE AS Element lazy function  ------------------------- #
-def SaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL Files", "*.*"),), initial_folder=None,
+def SaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL Files", "*.*"),), initial_folder=None,default_extension='',
            disabled=False, tooltip=None, size=(None, None), auto_size_button=None, button_color=None,
            change_submits=False, enable_events=False, font=None,
            pad=None, key=None, k=None, metadata=None):
@@ -9679,7 +9823,10 @@ def SaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL Fil
     :param target: key or (row,col) target for the button (Default value = (ThisRow, -1))
     :param file_types:  (Default value = (("ALL Files", "*.*")))
     :type file_types: Tuple[Tuple[str, str], ...]
+    :param default_extension:  If no extension entered by user, add this to filename (only used in saveas dialogs)
+    :type default_extension: (str)
     :param initial_folder:  starting path for folders and files
+    :type initial_folder: (str)
     :param disabled: set disable state for element (Default = False)
     :type disabled: (bool)
     :param tooltip: text, that will appear when mouse hovers over the element
@@ -9706,7 +9853,7 @@ def SaveAs(button_text='Save As...', target=(ThisRow, -1), file_types=(("ALL Fil
     :rtype: (Button)
     """
     return Button(button_text=button_text, button_type=BUTTON_TYPE_SAVEAS_FILE, target=target, file_types=file_types,
-                  initial_folder=initial_folder, tooltip=tooltip, size=size, disabled=disabled,
+                  initial_folder=initial_folder, default_extension=default_extension,  tooltip=tooltip, size=size, disabled=disabled,
                   auto_size_button=auto_size_button, button_color=button_color, change_submits=change_submits,
                   enable_events=enable_events, font=font, pad=pad, key=key, k=k, metadata=metadata)
 
@@ -10903,7 +11050,7 @@ def _FindElementWithFocusInSubForm(form):
     return None
 
 
-def AddMenuItem(top_menu, sub_menu_info, element, is_sub_menu=False, skip=False):
+def AddMenuItem(top_menu, sub_menu_info, element, is_sub_menu=False, skip=False, right_click_menu=False):
     """
     Only to be used internally. Not user callable
     :param top_menu: ???
@@ -10946,8 +11093,28 @@ def AddMenuItem(top_menu, sub_menu_info, element, is_sub_menu=False, skip=False)
             if i != len(sub_menu_info) - 1:
                 if type(sub_menu_info[i + 1]) == list:
                     new_menu = tk.Menu(top_menu, tearoff=element.Tearoff)
-                    if element.Font is not None:
-                        new_menu.config(font=element.Font)
+                    # if a right click menu, then get styling from the top-level window
+                    if right_click_menu:
+                        window = element.ParentForm
+                        if window.right_click_menu_background_color not in (COLOR_SYSTEM_DEFAULT, None):
+                            new_menu.config(bg=window.right_click_menu_background_color)
+                        if window.right_click_menu_text_color not in (COLOR_SYSTEM_DEFAULT, None):
+                            new_menu.config(fg=window.right_click_menu_text_color)
+                        if window.right_click_menu_disabled_text_color not in (COLOR_SYSTEM_DEFAULT, None):
+                            new_menu.config(disabledforeground=window.right_click_menu_disabled_text_color)
+                        if window.right_click_menu_font is not None:
+                            new_menu.config(font=window.right_click_menu_font)
+                    else:
+                        if element.Font is not None:
+                            new_menu.config(font=element.Font)
+                        if element.BackgroundColor not in (COLOR_SYSTEM_DEFAULT, None):
+                            new_menu.config(bg=element.BackgroundColor)
+                        if element.TextColor not in (COLOR_SYSTEM_DEFAULT, None):
+                            new_menu.config(fg=element.TextColor)
+                        if element.DisabledTextColor not in (COLOR_SYSTEM_DEFAULT, None):
+                            new_menu.config(disabledforeground=element.DisabledTextColor)
+                        if element.ItemFont is not None:
+                            new_menu.config(font=element.ItemFont)
                     return_val = new_menu
                     pos = sub_menu_info[i].find('&')
                     if pos != -1:
@@ -11106,6 +11273,23 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
         return False
 
 
+    def _add_right_click_menu(element):
+        if element.RightClickMenu or toplevel_form.RightClickMenu:
+            menu = element.RightClickMenu or toplevel_form.RightClickMenu
+            top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
+
+            if toplevel_form.right_click_menu_background_color not in (COLOR_SYSTEM_DEFAULT, None):
+                top_menu.config(bg=toplevel_form.right_click_menu_background_color)
+            if toplevel_form.right_click_menu_text_color not in (COLOR_SYSTEM_DEFAULT, None):
+                top_menu.config(fg=toplevel_form.right_click_menu_text_color)
+            if toplevel_form.right_click_menu_disabled_text_color not in (COLOR_SYSTEM_DEFAULT, None):
+                top_menu.config(disabledforeground=toplevel_form.right_click_menu_disabled_text_color)
+            if toplevel_form.right_click_menu_font is not None:
+                top_menu.config(font=toplevel_form.right_click_menu_font)
+
+            AddMenuItem(top_menu, menu[1], element, right_click_menu=True)
+            element.TKRightClickMenu = top_menu
+            element.Widget.bind('<Button-3>', element._RightClickMenuCallback)
 
     tclversion_detailed = tkinter.Tcl().eval('info patchlevel')
 
@@ -11264,12 +11448,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 #     element.TKColFrame.configure(background=element.BackgroundColor,
                 #                                  highlightbackground=element.BackgroundColor,
                 #                                  highlightcolor=element.BackgroundColor)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKColFrame.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
                 if element.Grab:
                     element._grab_anywhere_on()
                 # row_should_expand = True
@@ -11360,12 +11539,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     tktext_label.bind('<Button-1>', element._TextClickedHandler)
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKText, text=element.Tooltip, timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    tktext_label.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
                 if element.Grab:
                     element._grab_anywhere_on()
             # -------------------------  BUTTON placement element non-ttk version  ------------------------- #
@@ -11394,6 +11568,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 else:
                     bc = DEFAULT_BUTTON_COLOR
                 bd = element.BorderWidth
+
                 if btype != BUTTON_TYPE_REALTIME:
                     tkbutton = element.Widget = tk.Button(tk_row_frame, text=btext, width=width, height=height,
                                                           command=element.ButtonCallBack, justify=tk.CENTER, bd=bd, font=font)
@@ -11593,9 +11768,11 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     tkbutton.config(foreground=bc[0], background=bc[1], activebackground=bc[1])
                 elif bc[1] == COLOR_SYSTEM_DEFAULT:
                     tkbutton.config(foreground=bc[0])
-                if bd == 0:
-                    tkbutton.config(relief=tk.FLAT)
-                tkbutton.config(highlightthickness=0)
+                if bd == 0 and not sys.platform.startswith('darwin'):
+                    tkbutton.config(relief=RELIEF_FLAT)
+                elif bd != 0:
+                    tkbutton.config(relief=RELIEF_RAISED)
+
                 element.TKButton = tkbutton  # not used yet but save the TK button in case
                 wraplen = tkbutton.winfo_reqwidth()  # width of widget in Pixels
                 if element.ImageFilename:  # if button has an image on it
@@ -11625,6 +11802,16 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 menu_def = element.MenuDefinition
 
                 top_menu = tk.Menu(tkbutton, tearoff=False, font=font)
+
+                if element.BackgroundColor not in (COLOR_SYSTEM_DEFAULT, None):
+                    top_menu.config(bg=element.BackgroundColor)
+                if element.TextColor not in (COLOR_SYSTEM_DEFAULT, None):
+                    top_menu.config(fg=element.TextColor)
+                if element.DisabledTextColor not in (COLOR_SYSTEM_DEFAULT, None):
+                    top_menu.config(disabledforeground=element.DisabledTextColor)
+                if element.ItemFont is not None:
+                    top_menu.config(font=element.ItemFont)
+
                 AddMenuItem(top_menu, menu_def[1], element)
 
                 tkbutton.configure(menu=top_menu)
@@ -11683,12 +11870,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
 
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKEntry, text=element.Tooltip, timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKEntry.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
                 # row_should_expand = True
 
             # -------------------------  COMBO placement element  ------------------------- #
@@ -11860,12 +12042,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKListbox, text=element.Tooltip,
                                                     timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKListbox.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
             # -------------------------  MULTILINE placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_MULTILINE:
                 element = element  # type: Multiline
@@ -11919,12 +12096,8 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 if element.reroute_cprint:
                     cprint_set_output_destination(toplevel_form, element.Key)
 
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKText.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
+
                 # row_should_expand = True
             # -------------------------  CHECKBOX pleacement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_CHECKBOX:
@@ -12061,7 +12234,9 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     element.TKSpinBox.bind('<ButtonRelease-1>', element._SpinChangedHandler)
                     element.TKSpinBox.bind('<Up>', element._SpinChangedHandler)
                     element.TKSpinBox.bind('<Down>', element._SpinChangedHandler)
-                if element.Disabled == True:
+                if element.Readonly:
+                    element.TKSpinBox['state'] = 'readonly'
+                if element.Disabled is True:  # note overrides readonly if disabled
                     element.TKSpinBox['state'] = 'disabled'
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKSpinBox, text=element.Tooltip,
@@ -12080,12 +12255,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     element._TKOut.frame.pack_forget()
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element._TKOut, text=element.Tooltip, timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element._TKOut.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
                 # row_should_expand = True
                 # -------------------------  IMAGE placement element  ------------------------- #
             elif element_type == ELEM_TYPE_IMAGE:
@@ -12105,11 +12275,11 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     else:
                         width, height = element_size
                     if photo is not None:
-                        element.tktext_label = element.Widget = tk.Label(tk_row_frame, image=photo, width=width,
+                        element.tktext_label = tk.Label(tk_row_frame, image=photo, width=width,
                                                                          height=height,
                                                                          bd=border_depth)
                     else:
-                        element.tktext_label = element.Widget = tk.Label(tk_row_frame, width=width, height=height,
+                        element.tktext_label = tk.Label(tk_row_frame, width=width, height=height,
                                                                          bd=border_depth)
 
                     if not element.BackgroundColor in (None, COLOR_SYSTEM_DEFAULT):
@@ -12126,18 +12296,16 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                                                     timeout=DEFAULT_TOOLTIP_TIME)
                 if element.EnableEvents:
                     element.tktext_label.bind('<ButtonPress-1>', element._ClickHandler)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.tktext_label.bind('<Button-3>', element._RightClickMenuCallback)
+                element.Widget = element.tktext_label
+
+                _add_right_click_menu(element)
+
                 # -------------------------  Canvas placement element  ------------------------- #
             elif element_type == ELEM_TYPE_CANVAS:
                 element = element  # type: Canvas
                 width, height = element_size
                 if element._TKCanvas is None:
-                    element._TKCanvas = element.Widget = tk.Canvas(tk_row_frame, width=width, height=height,
+                    element._TKCanvas = tk.Canvas(tk_row_frame, width=width, height=height,
                                                                    bd=border_depth)
                 else:
                     element._TKCanvas.master = tk_row_frame
@@ -12149,12 +12317,9 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element._TKCanvas, text=element.Tooltip,
                                                     timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element._TKCanvas.bind('<Button-3>', element._RightClickMenuCallback)
+                element.Widget = element._TKCanvas
+                _add_right_click_menu(element)
+
                 # -------------------------  Graph placement element  ------------------------- #
             elif element_type == ELEM_TYPE_GRAPH:
                 element = element  # type: Graph
@@ -12183,12 +12348,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     element._TKCanvas2.bind('<ButtonPress-1>', element.ButtonPressCallBack)
                 if element.DragSubmits:
                     element._TKCanvas2.bind('<Motion>', element.MotionCallBack)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element._TKCanvas2.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
             # -------------------------  MENU placement element  ------------------------- #
             elif element_type == ELEM_TYPE_MENUBAR:
                 element = element  # type: MenuBar
@@ -12199,8 +12359,14 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 for menu_entry in menu_def:
                     # print(f'Adding a Menubar ENTRY {menu_entry}')
                     baritem = tk.Menu(menubar, tearoff=element.Tearoff)
-                    if element.Font is not None:
-                        baritem.config(font=element.Font)
+                    if element.BackgroundColor not in (COLOR_SYSTEM_DEFAULT, None):
+                        baritem.config(bg=element.BackgroundColor)
+                    if element.TextColor not in (COLOR_SYSTEM_DEFAULT, None):
+                        baritem.config(fg=element.TextColor)
+                    if element.DisabledTextColor not in (COLOR_SYSTEM_DEFAULT, None):
+                        baritem.config(disabledforeground=element.DisabledTextColor)
+                    if font is not None:
+                        baritem.config(font=font)
                     pos = menu_entry[0].find('&')
                     # print(pos)
                     if pos != -1:
@@ -12253,12 +12419,8 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     labeled_frame.configure(borderwidth=element.BorderWidth)
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(labeled_frame, text=element.Tooltip, timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    labeled_frame.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
+
                 # row_should_expand=True
             # -------------------------  Tab placement element  ------------------------- #
             elif element_type == ELEM_TYPE_TAB:
@@ -12288,12 +12450,8 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKFrame, text=element.Tooltip,
                                                     timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKFrame.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
+
                 # row_should_expand = True
             # -------------------------  TabGroup placement element  ------------------------- #
             elif element_type == ELEM_TYPE_TAB_GROUP:
@@ -12515,12 +12673,7 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKTreeview, text=element.Tooltip,
                                                     timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKTreeview.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
 
                 if tclversion_detailed == '8.6.9' and ENABLE_TREEVIEW_869_PATCH:
                     print('*** tk version 8.6.9 detected.... patching ttk treeview code ***')
@@ -12637,12 +12790,8 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                 if element.Tooltip is not None:  # tooltip
                     element.TooltipObject = ToolTip(element.TKTreeview, text=element.Tooltip,
                                                     timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.TKTreeview.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
+
                 if tclversion_detailed == '8.6.9' and ENABLE_TREEVIEW_869_PATCH:
                     print('*** tk version 8.6.9 detected.... patching ttk treeview code ***')
                     tree_style.map(style_name,
@@ -12720,12 +12869,8 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
                     tktext_label.bind('<Button-1>', element._TextClickedHandler)
                 if element.Tooltip is not None:
                     element.TooltipObject = ToolTip(element.TKText, text=element.Tooltip, timeout=DEFAULT_TOOLTIP_TIME)
-                if element.RightClickMenu or toplevel_form.RightClickMenu:
-                    menu = element.RightClickMenu or toplevel_form.RightClickMenu
-                    top_menu = tk.Menu(toplevel_form.TKroot, tearoff=False)
-                    AddMenuItem(top_menu, menu[1], element)
-                    element.TKRightClickMenu = top_menu
-                    element.Widget.bind('<Button-3>', element._RightClickMenuCallback)
+                _add_right_click_menu(element)
+
         # ............................DONE WITH ROW pack the row of widgets ..........................#
         # done with row, pack the row of widgets
         # tk_row_frame.grid(row=row_num+2, sticky=tk.NW, padx=DEFAULT_MARGINS[0])
@@ -12768,35 +12913,39 @@ def PackFormIntoFrame(form, containing_frame, toplevel_form):
 
 
 
-def ConvertFlexToTK(MyFlexForm):
+def _convert_window_to_tk(window):
     """
 
-    :type MyFlexForm: (Window)
+    :type window: (Window)
 
     """
-    master = MyFlexForm.TKroot
-    master.title(MyFlexForm.Title)
-    InitializeResults(MyFlexForm)
+    master = window.TKroot
+    master.title(window.Title)
+    InitializeResults(window)
     try:
-        if MyFlexForm.NoTitleBar:
+        if window.NoTitleBar:
             if sys.platform == 'linux':
-                MyFlexForm.TKroot.wm_attributes("-type", "splash")
+                window.TKroot.wm_attributes("-type", "splash")
             else:
-                MyFlexForm.TKroot.wm_overrideredirect(True)
+                window.TKroot.wm_overrideredirect(True)
+                # Special case for Mac. Need to clear flag again if not tkinter version 8.6.10+
+                if sys.platform.startswith('darwin') and ENABLE_MAC_NOTITLEBAR_PATCH and (sum([int(i) for i in tclversion_detailed.split('.')]) < 24):
+                    print('* Applying Mac no_titlebar patch *')
+                    window.TKroot.wm_overrideredirect(False)
     except:
         pass
 
-    PackFormIntoFrame(MyFlexForm, master, MyFlexForm)
+    PackFormIntoFrame(window, master, window)
 
-    MyFlexForm.TKroot.configure(padx=MyFlexForm.Margins[0], pady=MyFlexForm.Margins[1])
+    window.TKroot.configure(padx=window.Margins[0], pady=window.Margins[1])
 
     # ....................................... DONE creating and laying out window ..........................#
-    if MyFlexForm._Size != (None, None):
-        master.geometry("%sx%s" % (MyFlexForm._Size[0], MyFlexForm._Size[1]))
+    if window._Size != (None, None):
+        master.geometry("%sx%s" % (window._Size[0], window._Size[1]))
     screen_width = master.winfo_screenwidth()  # get window info to move to middle of screen
     screen_height = master.winfo_screenheight()
-    if MyFlexForm.Location != (None, None):
-        x, y = MyFlexForm.Location
+    if window.Location != (None, None):
+        x, y = window.Location
     elif DEFAULT_WINDOW_LOCATION != (None, None):
         x, y = DEFAULT_WINDOW_LOCATION
     else:
@@ -12812,11 +12961,11 @@ def ConvertFlexToTK(MyFlexForm):
 
     move_string = '+%i+%i' % (int(x), int(y))
     master.geometry(move_string)
-    MyFlexForm.config_last_location = (int(x), (int(y)))
-    MyFlexForm.TKroot.x = int(x)
-    MyFlexForm.TKroot.y = int(y)
-    # print(f'setting initial locaiton = {MyFlexForm.config_last_location}')
-    MyFlexForm.starting_window_position =  (int(x), (int(y)))
+    window.config_last_location = (int(x), (int(y)))
+    window.TKroot.x = int(x)
+    window.TKroot.y = int(y)
+    # print(f'setting initial locaiton = {window.config_last_location}')
+    window.starting_window_position =  (int(x), (int(y)))
     master.update_idletasks()  # don't forget
 
     return
@@ -12898,7 +13047,7 @@ def StartupTK(window):
 
     # root.protocol("WM_DELETE_WINDOW", MyFlexForm.DestroyedCallback())
     # root.bind('<Destroy>', MyFlexForm.DestroyedCallback())
-    ConvertFlexToTK(window)
+    _convert_window_to_tk(window)
 
     window.SetIcon(window.WindowIcon)
 
@@ -12923,8 +13072,11 @@ def StartupTK(window):
         window.TKroot.focus_force()
 
     if window.AutoClose:
-        duration = DEFAULT_AUTOCLOSE_TIME if window.AutoCloseDuration is None else window.AutoCloseDuration
-        window.TKAfterID = root.after(int(duration * 1000), window._AutoCloseAlarmCallback)
+        # if the window is being finalized, then don't start the autoclose timer
+        if not window.finalize_in_progress:
+            window._start_autoclose_timer()
+            # duration = DEFAULT_AUTOCLOSE_TIME if window.AutoCloseDuration is None else window.AutoCloseDuration
+            # window.TKAfterID = root.after(int(duration * 1000), window._AutoCloseAlarmCallback)
 
     if window.Timeout != None:
         window.TKAfterID = root.after(int(window.Timeout), window._TimeoutAlarmCallback)
@@ -12960,6 +13112,59 @@ def StartupTK(window):
                 pass
             window.RootNeedsDestroying = False
     return
+
+
+
+
+def _set_icon_for_tkinter_window(root, icon=None, pngbase64=None):
+    """
+    At the moment, this function is only used by the get_filename or folder with the no_window option set.
+    Changes the icon that is shown on the title bar and on the task bar.
+    NOTE - The file type is IMPORTANT and depends on the OS!
+    Can pass in:
+    * filename which must be a .ICO icon file for windows, PNG file for Linux
+    * bytes object
+    * BASE64 encoded file held in a variable
+
+    :param root: The window being modified
+    :type root: (tk.Tk or tk.TopLevel)
+    :param icon: Filename or bytes object
+    :type icon: (str)
+    :param pngbase64: Base64 encoded image
+    :type pngbase64: (str)
+    """
+
+    if type(icon) is bytes or pngbase64 is not None:
+        wicon = tkinter.PhotoImage(data=icon if icon is not None else pngbase64)
+        try:
+            root.tk.call('wm', 'iconphoto', root._w, wicon)
+        except:
+            wicon = tkinter.PhotoImage(data=DEFAULT_BASE64_ICON)
+            try:
+                root.tk.call('wm', 'iconphoto', root._w, wicon)
+            except Exception as e:
+                print('Set icon exception', e)
+                pass
+        return
+
+    wicon = icon
+    try:
+        root.iconbitmap(icon)
+    except:
+        try:
+            wicon = tkinter.PhotoImage(file=icon)
+            root.tk.call('wm', 'iconphoto', root._w, wicon)
+        except:
+            try:
+                wicon = tkinter.PhotoImage(data=DEFAULT_BASE64_ICON)
+                try:
+                    root.tk.call('wm', 'iconphoto', root._w, wicon)
+                except:
+                    print('Set icon exception', e)
+                    pass
+            except:
+                print('Set icon exception', e)
+                pass
 
 
 # ==============================_GetNumLinesNeeded ==#
@@ -13565,7 +13770,7 @@ def SetOptions(icon=None, button_color=None, element_size=(None, None), button_e
                text_justification=None, background_color=None, element_background_color=None,
                text_element_background_color=None, input_elements_background_color=None, input_text_color=None,
                scrollbar_color=None, text_color=None, element_text_color=None, debug_win_size=(None, None),
-               window_location=(None, None), error_button_color=(None, None), tooltip_time=None, tooltip_font=None, use_ttk_buttons=None, ttk_theme=None, suppress_error_popups=None, suppress_raise_key_errors=None, suppress_key_guessing=None, enable_treeview_869_patch=None):
+               window_location=(None, None), error_button_color=(None, None), tooltip_time=None, tooltip_font=None, use_ttk_buttons=None, ttk_theme=None, suppress_error_popups=None, suppress_raise_key_errors=None, suppress_key_guessing=None, enable_treeview_869_patch=None, enable_mac_notitlebar_patch=None):
     """
     :param icon: filename or base64 string to be used for the window's icon
     :type icon: Union[bytes, str]
@@ -13648,6 +13853,8 @@ def SetOptions(icon=None, button_color=None, element_size=(None, None), button_e
     :type suppress_key_guessing:  (bool)
     :param enable_treeview_869_patch: If True, then will use the treeview color patch for tk 8.6.9
     :type enable_treeview_869_patch:  (bool)
+    :param enable_mac_notitlebar_patch: If True then Windows with no titlebar use an alternative technique when tkinter version < 8.6.10
+    :type enable_mac_notitlebar_patch:  (bool)
     :return: None
     :rtype: None
     """
@@ -13691,6 +13898,7 @@ def SetOptions(icon=None, button_color=None, element_size=(None, None), button_e
     global SUPPRESS_RAISE_KEY_ERRORS
     global SUPPRESS_KEY_GUESSING
     global ENABLE_TREEVIEW_869_PATCH
+    global ENABLE_MAC_NOTITLEBAR_PATCH
     # global _my_windows
 
     if icon:
@@ -13815,6 +14023,10 @@ def SetOptions(icon=None, button_color=None, element_size=(None, None), button_e
     if enable_treeview_869_patch is not None:
         ENABLE_TREEVIEW_869_PATCH = enable_treeview_869_patch
 
+    if enable_mac_notitlebar_patch is not None:
+        ENABLE_MAC_NOTITLEBAR_PATCH = enable_mac_notitlebar_patch
+
+
     return True
 
 
@@ -13849,1089 +14061,160 @@ def get_globals():
 # Predefined settings that will change the colors and styles #
 # of the elements.                                           #
 ##############################################################
-LOOK_AND_FEEL_TABLE = {'SystemDefault':
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
+LOOK_AND_FEEL_TABLE = {
+"SystemDefault": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"SystemDefaultForReal": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": COLOR_SYSTEM_DEFAULT,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"SystemDefault1": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": COLOR_SYSTEM_DEFAULT,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"Material1": {"BACKGROUND": "#E3F2FD","TEXT": "#000000","INPUT": "#86A8FF","TEXT_INPUT": "#000000","SCROLL": "#86A8FF","BUTTON": ("#FFFFFF", "#5079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"Material2": {"BACKGROUND": "#FAFAFA","TEXT": "#000000","INPUT": "#004EA1","TEXT_INPUT": "#FFFFFF","SCROLL": "#5EA7FF","BUTTON": ("#FFFFFF", "#0079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"Reddit": {"BACKGROUND": "#ffffff","TEXT": "#1a1a1b","INPUT": "#dae0e6","TEXT_INPUT": "#222222","SCROLL": "#a5a4a4","BUTTON": ("#FFFFFF", "#0079d3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#ff5414","ACCENT2": "#33a8ff","ACCENT3": "#dbf0ff",},
+"Topanga": {"BACKGROUND": "#282923","TEXT": "#E7DB74","INPUT": "#393a32","TEXT_INPUT": "#E7C855","SCROLL": "#E7C855","BUTTON": ("#E7C855", "#284B5A"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#c15226","ACCENT2": "#7a4d5f","ACCENT3": "#889743",},
+"GreenTan": {"BACKGROUND": "#9FB8AD","TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": "#F7F3EC","TEXT_INPUT": "#000000","SCROLL": "#F7F3EC","BUTTON": ("#FFFFFF", "#475841"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Dark": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen": {"BACKGROUND": "#B7CECE","TEXT": "#000000","INPUT": "#FDFFF7","TEXT_INPUT": "#000000","SCROLL": "#FDFFF7","BUTTON": ("#FFFFFF", "#658268"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"ACCENT1": "#76506d","ACCENT2": "#5148f1","ACCENT3": "#0a1c84","PROGRESS_DEPTH": 0,},
+"Dark2": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#FFFFFF","TEXT_INPUT": "#000000","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Black": {"BACKGROUND": "#000000","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#000000", "#FFFFFF"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Tan": {"BACKGROUND": "#fdf6e3","TEXT": "#268bd1","INPUT": "#eee8d5","TEXT_INPUT": "#6c71c3","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063542"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"TanBlue": {"BACKGROUND": "#e5dece","TEXT": "#063289","INPUT": "#f9f8f4","TEXT_INPUT": "#242834","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkTanBlue": {"BACKGROUND": "#242834","TEXT": "#dfe6f8","INPUT": "#97755c","TEXT_INPUT": "#FFFFFF","SCROLL": "#a9afbb","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkAmber": {"BACKGROUND": "#2c2825","TEXT": "#fdcb52","INPUT": "#705e52","TEXT_INPUT": "#fdcb52","SCROLL": "#705e52","BUTTON": ("#000000", "#fdcb52"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue": {"BACKGROUND": "#1a2835","TEXT": "#d1ecff","INPUT": "#335267","TEXT_INPUT": "#acc2d0","SCROLL": "#1b6497","BUTTON": ("#000000", "#fafaf8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Reds": {"BACKGROUND": "#280001","TEXT": "#FFFFFF","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#763e00","BUTTON": ("#000000", "#daad28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Green": {"BACKGROUND": "#82a459","TEXT": "#000000","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#e3ecf3","BUTTON": ("#FFFFFF", "#517239"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BluePurple": {"BACKGROUND": "#A5CADD","TEXT": "#6E266E","INPUT": "#E0F5FF","TEXT_INPUT": "#000000","SCROLL": "#E0F5FF","BUTTON": ("#FFFFFF", "#303952"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Purple": {"BACKGROUND": "#B0AAC2","TEXT": "#000000","INPUT": "#F2EFE8","SCROLL": "#F2EFE8","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#C2D4D8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BlueMono": {"BACKGROUND": "#AAB6D3","TEXT": "#000000","INPUT": "#F1F4FC","SCROLL": "#F1F4FC","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#7186C7"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"GreenMono": {"BACKGROUND": "#A8C1B4","TEXT": "#000000","INPUT": "#DDE0DE","SCROLL": "#E3E3E3","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#6D9F85"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BrownBlue": {"BACKGROUND": "#64778d","TEXT": "#FFFFFF","INPUT": "#f0f3f7","SCROLL": "#A6B2BE","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#283b5b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BrightColors": {"BACKGROUND": "#b4ffb4","TEXT": "#000000","INPUT": "#ffff64","SCROLL": "#ffb482","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#ffa0dc"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"NeutralBlue": {"BACKGROUND": "#92aa9d","TEXT": "#000000","INPUT": "#fcfff6","SCROLL": "#fcfff6","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#d0dbbd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Kayak": {"BACKGROUND": "#a7ad7f","TEXT": "#000000","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#5d907d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"SandyBeach": {"BACKGROUND": "#efeccb","TEXT": "#012f2f","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#012f2f","BUTTON": ("#FFFFFF", "#046380"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"TealMono": {"BACKGROUND": "#a8cfdd","TEXT": "#000000","INPUT": "#dfedf2","SCROLL": "#dfedf2","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#183440"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Default": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"Default1": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": COLOR_SYSTEM_DEFAULT,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"DefaultNoMoreNagging": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"LightBlue": {"BACKGROUND": "#E3F2FD","TEXT": "#000000","INPUT": "#86A8FF","TEXT_INPUT": "#000000","SCROLL": "#86A8FF","BUTTON": ("#FFFFFF", "#5079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"LightGrey": {"BACKGROUND": "#FAFAFA","TEXT": "#000000","INPUT": "#004EA1","TEXT_INPUT": "#FFFFFF","SCROLL": "#5EA7FF","BUTTON": ("#FFFFFF", "#0079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"LightGrey1": {"BACKGROUND": "#ffffff","TEXT": "#1a1a1b","INPUT": "#dae0e6","TEXT_INPUT": "#222222","SCROLL": "#a5a4a4","BUTTON": ("#FFFFFF", "#0079d3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#ff5414","ACCENT2": "#33a8ff","ACCENT3": "#dbf0ff",},
+"DarkBrown": {"BACKGROUND": "#282923","TEXT": "#E7DB74","INPUT": "#393a32","TEXT_INPUT": "#E7C855","SCROLL": "#E7C855","BUTTON": ("#E7C855", "#284B5A"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#c15226","ACCENT2": "#7a4d5f","ACCENT3": "#889743",},
+"LightGreen1": {"BACKGROUND": "#9FB8AD","TEXT": "#000000","INPUT": "#F7F3EC","TEXT_INPUT": "#000000","SCROLL": "#F7F3EC","BUTTON": ("#FFFFFF", "#475841"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen2": {"BACKGROUND": "#B7CECE","TEXT": "#000000","INPUT": "#FDFFF7","TEXT_INPUT": "#000000","SCROLL": "#FDFFF7","BUTTON": ("#FFFFFF", "#658268"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"ACCENT1": "#76506d","ACCENT2": "#5148f1","ACCENT3": "#0a1c84","PROGRESS_DEPTH": 0,},
+"DarkGrey1": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#FFFFFF","TEXT_INPUT": "#000000","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlack": {"BACKGROUND": "#000000","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#000000", "#FFFFFF"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown": {"BACKGROUND": "#fdf6e3","TEXT": "#268bd1","INPUT": "#eee8d5","TEXT_INPUT": "#6c71c3","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063542"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown1": {"BACKGROUND": "#e5dece","TEXT": "#063289","INPUT": "#f9f8f4","TEXT_INPUT": "#242834","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue1": {"BACKGROUND": "#242834","TEXT": "#dfe6f8","INPUT": "#97755c","TEXT_INPUT": "#FFFFFF","SCROLL": "#a9afbb","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBrown1": {"BACKGROUND": "#2c2825","TEXT": "#fdcb52","INPUT": "#705e52","TEXT_INPUT": "#fdcb52","SCROLL": "#705e52","BUTTON": ("#000000", "#fdcb52"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue2": {"BACKGROUND": "#1a2835","TEXT": "#d1ecff","INPUT": "#335267","TEXT_INPUT": "#acc2d0","SCROLL": "#1b6497","BUTTON": ("#000000", "#fafaf8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBrown2": {"BACKGROUND": "#280001","TEXT": "#FFFFFF","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#763e00","BUTTON": ("#000000", "#daad28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGreen": {"BACKGROUND": "#82a459","TEXT": "#000000","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#e3ecf3","BUTTON": ("#FFFFFF", "#517239"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBlue1": {"BACKGROUND": "#A5CADD","TEXT": "#6E266E","INPUT": "#E0F5FF","TEXT_INPUT": "#000000","SCROLL": "#E0F5FF","BUTTON": ("#FFFFFF", "#303952"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightPurple": {"BACKGROUND": "#B0AAC2","TEXT": "#000000","INPUT": "#F2EFE8","SCROLL": "#F2EFE8","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#C2D4D8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBlue2": {"BACKGROUND": "#AAB6D3","TEXT": "#000000","INPUT": "#F1F4FC","SCROLL": "#F1F4FC","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#7186C7"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen3": {"BACKGROUND": "#A8C1B4","TEXT": "#000000","INPUT": "#DDE0DE","SCROLL": "#E3E3E3","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#6D9F85"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue3": {"BACKGROUND": "#64778d","TEXT": "#FFFFFF","INPUT": "#f0f3f7","SCROLL": "#A6B2BE","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#283b5b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen4": {"BACKGROUND": "#b4ffb4","TEXT": "#000000","INPUT": "#ffff64","SCROLL": "#ffb482","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#ffa0dc"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen5": {"BACKGROUND": "#92aa9d","TEXT": "#000000","INPUT": "#fcfff6","SCROLL": "#fcfff6","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#d0dbbd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown2": {"BACKGROUND": "#a7ad7f","TEXT": "#000000","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#5d907d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown3": {"BACKGROUND": "#efeccb","TEXT": "#012f2f","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#012f2f","BUTTON": ("#FFFFFF", "#046380"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBlue3": {"BACKGROUND": "#a8cfdd","TEXT": "#000000","INPUT": "#dfedf2","SCROLL": "#dfedf2","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#183440"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown4": {"BACKGROUND": "#d7c79e","TEXT": "#a35638","INPUT": "#9dab86","TEXT_INPUT": "#000000","SCROLL": "#a35638","BUTTON": ("#FFFFFF", "#a35638"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#a35638", "#9dab86", "#e08f62", "#d7c79e"],},
+"DarkTeal": {"BACKGROUND": "#003f5c","TEXT": "#fb5b5a","INPUT": "#bc4873","TEXT_INPUT": "#FFFFFF","SCROLL": "#bc4873","BUTTON": ("#FFFFFF", "#fb5b5a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#003f5c", "#472b62", "#bc4873", "#fb5b5a"],},
+"DarkPurple": {"BACKGROUND": "#472b62","TEXT": "#fb5b5a","INPUT": "#bc4873","TEXT_INPUT": "#FFFFFF","SCROLL": "#bc4873","BUTTON": ("#FFFFFF", "#472b62"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#003f5c", "#472b62", "#bc4873", "#fb5b5a"],},
+"LightGreen6": {"BACKGROUND": "#eafbea","TEXT": "#1f6650","INPUT": "#6f9a8d","TEXT_INPUT": "#FFFFFF","SCROLL": "#1f6650","BUTTON": ("#FFFFFF", "#1f6650"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#1f6650", "#6f9a8d", "#ea5e5e", "#eafbea"],},
+"DarkGrey2": {"BACKGROUND": "#2b2b28","TEXT": "#f8f8f8","INPUT": "#f1d6ab","TEXT_INPUT": "#000000","SCROLL": "#f1d6ab","BUTTON": ("#2b2b28", "#e3b04b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#2b2b28", "#e3b04b", "#f1d6ab", "#f8f8f8"],},
+"LightBrown6": {"BACKGROUND": "#f9b282","TEXT": "#8f4426","INPUT": "#de6b35","TEXT_INPUT": "#FFFFFF","SCROLL": "#8f4426","BUTTON": ("#FFFFFF", "#8f4426"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#8f4426", "#de6b35", "#64ccda", "#f9b282"],},
+"DarkTeal1": {"BACKGROUND": "#396362","TEXT": "#ffe7d1","INPUT": "#f6c89f","TEXT_INPUT": "#000000","SCROLL": "#f6c89f","BUTTON": ("#ffe7d1", "#4b8e8d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#396362", "#4b8e8d", "#f6c89f", "#ffe7d1"],},
+"LightBrown7": {"BACKGROUND": "#f6c89f","TEXT": "#396362","INPUT": "#4b8e8d","TEXT_INPUT": "#FFFFFF","SCROLL": "#396362","BUTTON": ("#FFFFFF", "#396362"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#396362", "#4b8e8d", "#f6c89f", "#ffe7d1"],},
+"DarkPurple1": {"BACKGROUND": "#0c093c","TEXT": "#fad6d6","INPUT": "#eea5f6","TEXT_INPUT": "#000000","SCROLL": "#eea5f6","BUTTON": ("#FFFFFF", "#df42d1"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#0c093c", "#df42d1", "#eea5f6", "#fad6d6"],},
+"DarkGrey3": {"BACKGROUND": "#211717","TEXT": "#dfddc7","INPUT": "#f58b54","TEXT_INPUT": "#000000","SCROLL": "#f58b54","BUTTON": ("#dfddc7", "#a34a28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#211717", "#a34a28", "#f58b54", "#dfddc7"],},
+"LightBrown8": {"BACKGROUND": "#dfddc7","TEXT": "#211717","INPUT": "#a34a28","TEXT_INPUT": "#dfddc7","SCROLL": "#211717","BUTTON": ("#dfddc7", "#a34a28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#211717", "#a34a28", "#f58b54", "#dfddc7"],},
+"DarkBlue4": {"BACKGROUND": "#494ca2","TEXT": "#e3e7f1","INPUT": "#c6cbef","TEXT_INPUT": "#000000","SCROLL": "#c6cbef","BUTTON": ("#FFFFFF", "#8186d5"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#494ca2", "#8186d5", "#c6cbef", "#e3e7f1"],},
+"LightBlue4": {"BACKGROUND": "#5c94bd","TEXT": "#470938","INPUT": "#1a3e59","TEXT_INPUT": "#FFFFFF","SCROLL": "#470938","BUTTON": ("#FFFFFF", "#470938"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#470938", "#1a3e59", "#5c94bd", "#f2d6eb"],},
+"DarkTeal2": {"BACKGROUND": "#394a6d","TEXT": "#c0ffb3","INPUT": "#52de97","TEXT_INPUT": "#000000","SCROLL": "#52de97","BUTTON": ("#c0ffb3", "#394a6d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#394a6d", "#3c9d9b", "#52de97", "#c0ffb3"],},
+"DarkTeal3": {"BACKGROUND": "#3c9d9b","TEXT": "#c0ffb3","INPUT": "#52de97","TEXT_INPUT": "#000000","SCROLL": "#52de97","BUTTON": ("#c0ffb3", "#394a6d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#394a6d", "#3c9d9b", "#52de97", "#c0ffb3"],},
+"DarkPurple5": {"BACKGROUND": "#730068","TEXT": "#f6f078","INPUT": "#01d28e","TEXT_INPUT": "#000000","SCROLL": "#01d28e","BUTTON": ("#f6f078", "#730068"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#730068", "#434982", "#01d28e", "#f6f078"],},
+"DarkPurple2": {"BACKGROUND": "#202060","TEXT": "#b030b0","INPUT": "#602080","TEXT_INPUT": "#FFFFFF","SCROLL": "#602080","BUTTON": ("#FFFFFF", "#202040"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#202040", "#202060", "#602080", "#b030b0"],},
+"DarkBlue5": {"BACKGROUND": "#000272","TEXT": "#ff6363","INPUT": "#a32f80","TEXT_INPUT": "#FFFFFF","SCROLL": "#a32f80","BUTTON": ("#FFFFFF", "#341677"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#000272", "#341677", "#a32f80", "#ff6363"],},
+"LightGrey2": {"BACKGROUND": "#f6f6f6","TEXT": "#420000","INPUT": "#d4d7dd","TEXT_INPUT": "#420000","SCROLL": "#420000","BUTTON": ("#420000", "#d4d7dd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#420000", "#d4d7dd", "#eae9e9", "#f6f6f6"],},
+"LightGrey3": {"BACKGROUND": "#eae9e9","TEXT": "#420000","INPUT": "#d4d7dd","TEXT_INPUT": "#420000","SCROLL": "#420000","BUTTON": ("#420000", "#d4d7dd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#420000", "#d4d7dd", "#eae9e9", "#f6f6f6"],},
+"DarkBlue6": {"BACKGROUND": "#01024e","TEXT": "#ff6464","INPUT": "#8b4367","TEXT_INPUT": "#FFFFFF","SCROLL": "#8b4367","BUTTON": ("#FFFFFF", "#543864"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#01024e", "#543864", "#8b4367", "#ff6464"],},
+"DarkBlue7": {"BACKGROUND": "#241663","TEXT": "#eae7af","INPUT": "#a72693","TEXT_INPUT": "#eae7af","SCROLL": "#a72693","BUTTON": ("#eae7af", "#160f30"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#160f30", "#241663", "#a72693", "#eae7af"],},
+"LightBrown9": {"BACKGROUND": "#f6d365","TEXT": "#3a1f5d","INPUT": "#c83660","TEXT_INPUT": "#f6d365","SCROLL": "#3a1f5d","BUTTON": ("#f6d365", "#c83660"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3a1f5d", "#c83660", "#e15249", "#f6d365"],},
+"DarkPurple3": {"BACKGROUND": "#6e2142","TEXT": "#ffd692","INPUT": "#e16363","TEXT_INPUT": "#ffd692","SCROLL": "#e16363","BUTTON": ("#ffd692", "#943855"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#6e2142", "#943855", "#e16363", "#ffd692"],},
+"LightBrown10": {"BACKGROUND": "#ffd692","TEXT": "#6e2142","INPUT": "#943855","TEXT_INPUT": "#FFFFFF","SCROLL": "#6e2142","BUTTON": ("#FFFFFF", "#6e2142"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#6e2142", "#943855", "#e16363", "#ffd692"],},
+"DarkPurple4": {"BACKGROUND": "#200f21","TEXT": "#f638dc","INPUT": "#5a3d5c","TEXT_INPUT": "#FFFFFF","SCROLL": "#5a3d5c","BUTTON": ("#FFFFFF", "#382039"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#200f21", "#382039", "#5a3d5c", "#f638dc"],},
+"LightBlue5": {"BACKGROUND": "#b2fcff","TEXT": "#3e64ff","INPUT": "#5edfff","TEXT_INPUT": "#000000","SCROLL": "#3e64ff","BUTTON": ("#FFFFFF", "#3e64ff"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3e64ff", "#5edfff", "#b2fcff", "#ecfcff"],},
+"DarkTeal4": {"BACKGROUND": "#464159","TEXT": "#c7f0db","INPUT": "#8bbabb","TEXT_INPUT": "#000000","SCROLL": "#8bbabb","BUTTON": ("#FFFFFF", "#6c7b95"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#464159", "#6c7b95", "#8bbabb", "#c7f0db"],},
+"LightTeal": {"BACKGROUND": "#c7f0db","TEXT": "#464159","INPUT": "#6c7b95","TEXT_INPUT": "#FFFFFF","SCROLL": "#464159","BUTTON": ("#FFFFFF", "#464159"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#464159", "#6c7b95", "#8bbabb", "#c7f0db"],},
+"DarkTeal5": {"BACKGROUND": "#8bbabb","TEXT": "#464159","INPUT": "#6c7b95","TEXT_INPUT": "#FFFFFF","SCROLL": "#464159","BUTTON": ("#c7f0db", "#6c7b95"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#464159", "#6c7b95", "#8bbabb", "#c7f0db"],},
+"LightGrey4": {"BACKGROUND": "#faf5ef","TEXT": "#672f2f","INPUT": "#99b19c","TEXT_INPUT": "#672f2f","SCROLL": "#672f2f","BUTTON": ("#672f2f", "#99b19c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#672f2f", "#99b19c", "#d7d1c9", "#faf5ef"],},
+"LightGreen7": {"BACKGROUND": "#99b19c","TEXT": "#faf5ef","INPUT": "#d7d1c9","TEXT_INPUT": "#000000","SCROLL": "#d7d1c9","BUTTON": ("#FFFFFF", "#99b19c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#672f2f", "#99b19c", "#d7d1c9", "#faf5ef"],},
+"LightGrey5": {"BACKGROUND": "#d7d1c9","TEXT": "#672f2f","INPUT": "#99b19c","TEXT_INPUT": "#672f2f","SCROLL": "#672f2f","BUTTON": ("#FFFFFF", "#672f2f"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#672f2f", "#99b19c", "#d7d1c9", "#faf5ef"],},
+"DarkBrown3": {"BACKGROUND": "#a0855b","TEXT": "#f9f6f2","INPUT": "#f1d6ab","TEXT_INPUT": "#000000","SCROLL": "#f1d6ab","BUTTON": ("#FFFFFF", "#38470b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#38470b", "#a0855b", "#f1d6ab", "#f9f6f2"],},
+"LightBrown11": {"BACKGROUND": "#f1d6ab","TEXT": "#38470b","INPUT": "#a0855b","TEXT_INPUT": "#FFFFFF","SCROLL": "#38470b","BUTTON": ("#f9f6f2", "#a0855b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#38470b", "#a0855b", "#f1d6ab", "#f9f6f2"],},
+"DarkRed": {"BACKGROUND": "#83142c","TEXT": "#f9d276","INPUT": "#ad1d45","TEXT_INPUT": "#FFFFFF","SCROLL": "#ad1d45","BUTTON": ("#f9d276", "#ad1d45"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#44000d", "#83142c", "#ad1d45", "#f9d276"],},
+"DarkTeal6": {"BACKGROUND": "#204969","TEXT": "#fff7f7","INPUT": "#dadada","TEXT_INPUT": "#000000","SCROLL": "#dadada","BUTTON": ("#000000", "#fff7f7"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#204969", "#08ffc8", "#dadada", "#fff7f7"],},
+"DarkBrown4": {"BACKGROUND": "#252525","TEXT": "#ff0000","INPUT": "#af0404","TEXT_INPUT": "#FFFFFF","SCROLL": "#af0404","BUTTON": ("#FFFFFF", "#252525"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#252525", "#414141", "#af0404", "#ff0000"],},
+"LightYellow": {"BACKGROUND": "#f4ff61","TEXT": "#27aa80","INPUT": "#32ff6a","TEXT_INPUT": "#000000","SCROLL": "#27aa80","BUTTON": ("#f4ff61", "#27aa80"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#27aa80", "#32ff6a", "#a8ff3e", "#f4ff61"],},
+"DarkGreen1": {"BACKGROUND": "#2b580c","TEXT": "#fdef96","INPUT": "#f7b71d","TEXT_INPUT": "#000000","SCROLL": "#f7b71d","BUTTON": ("#fdef96", "#2b580c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#2b580c", "#afa939", "#f7b71d", "#fdef96"],},
+"LightGreen8": {"BACKGROUND": "#c8dad3","TEXT": "#63707e","INPUT": "#93b5b3","TEXT_INPUT": "#000000","SCROLL": "#63707e","BUTTON": ("#FFFFFF", "#63707e"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#63707e", "#93b5b3", "#c8dad3", "#f2f6f5"],},
+"DarkTeal7": {"BACKGROUND": "#248ea9","TEXT": "#fafdcb","INPUT": "#aee7e8","TEXT_INPUT": "#000000","SCROLL": "#aee7e8","BUTTON": ("#000000", "#fafdcb"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#248ea9", "#28c3d4", "#aee7e8", "#fafdcb"],},
+"DarkBlue8": {"BACKGROUND": "#454d66","TEXT": "#d9d872","INPUT": "#58b368","TEXT_INPUT": "#000000","SCROLL": "#58b368","BUTTON": ("#000000", "#009975"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#009975", "#454d66", "#58b368", "#d9d872"],},
+"DarkBlue9": {"BACKGROUND": "#263859","TEXT": "#ff6768","INPUT": "#6b778d","TEXT_INPUT": "#FFFFFF","SCROLL": "#6b778d","BUTTON": ("#ff6768", "#263859"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#17223b", "#263859", "#6b778d", "#ff6768"],},
+"DarkBlue10": {"BACKGROUND": "#0028ff","TEXT": "#f1f4df","INPUT": "#10eaf0","TEXT_INPUT": "#000000","SCROLL": "#10eaf0","BUTTON": ("#f1f4df", "#24009c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#24009c", "#0028ff", "#10eaf0", "#f1f4df"],},
+"DarkBlue11": {"BACKGROUND": "#6384b3","TEXT": "#e6f0b6","INPUT": "#b8e9c0","TEXT_INPUT": "#000000","SCROLL": "#b8e9c0","BUTTON": ("#e6f0b6", "#684949"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#684949", "#6384b3", "#b8e9c0", "#e6f0b6"],},
+"DarkTeal8": {"BACKGROUND": "#71a0a5","TEXT": "#212121","INPUT": "#665c84","TEXT_INPUT": "#FFFFFF","SCROLL": "#212121","BUTTON": ("#fab95b", "#665c84"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#212121", "#665c84", "#71a0a5", "#fab95b"],},
+"DarkRed1": {"BACKGROUND": "#c10000","TEXT": "#eeeeee","INPUT": "#dedede","TEXT_INPUT": "#000000","SCROLL": "#dedede","BUTTON": ("#c10000", "#eeeeee"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#c10000", "#ff4949", "#dedede", "#eeeeee"],},
+"LightBrown5": {"BACKGROUND": "#fff591","TEXT": "#e41749","INPUT": "#f5587b","TEXT_INPUT": "#000000","SCROLL": "#e41749","BUTTON": ("#fff591", "#e41749"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#e41749", "#f5587b", "#ff8a5c", "#fff591"],},
+"LightGreen9": {"BACKGROUND": "#f1edb3","TEXT": "#3b503d","INPUT": "#4a746e","TEXT_INPUT": "#f1edb3","SCROLL": "#3b503d","BUTTON": ("#f1edb3", "#3b503d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3b503d", "#4a746e", "#c8cf94", "#f1edb3"],"DESCRIPTION": ["Green", "Turquoise", "Yellow"],},
+"DarkGreen2": {"BACKGROUND": "#3b503d","TEXT": "#f1edb3","INPUT": "#c8cf94","TEXT_INPUT": "#000000","SCROLL": "#c8cf94","BUTTON": ("#f1edb3", "#3b503d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3b503d", "#4a746e", "#c8cf94", "#f1edb3"],"DESCRIPTION": ["Green", "Turquoise", "Yellow"],},
+"LightGray1": {"BACKGROUND": "#f2f2f2","TEXT": "#222831","INPUT": "#393e46","TEXT_INPUT": "#FFFFFF","SCROLL": "#222831","BUTTON": ("#f2f2f2", "#222831"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#222831", "#393e46", "#f96d00", "#f2f2f2"],"DESCRIPTION": ["#000000", "Grey", "Orange", "Grey", "Autumn"],},
+"DarkGrey4": {"BACKGROUND": "#52524e","TEXT": "#e9e9e5","INPUT": "#d4d6c8","TEXT_INPUT": "#000000","SCROLL": "#d4d6c8","BUTTON": ("#FFFFFF", "#9a9b94"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#52524e", "#9a9b94", "#d4d6c8", "#e9e9e5"],"DESCRIPTION": ["Grey", "Pastel", "Winter"],},
+"DarkBlue12": {"BACKGROUND": "#324e7b","TEXT": "#f8f8f8","INPUT": "#86a6df","TEXT_INPUT": "#000000","SCROLL": "#86a6df","BUTTON": ("#FFFFFF", "#5068a9"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#324e7b", "#5068a9", "#86a6df", "#f8f8f8"],"DESCRIPTION": ["Blue", "Grey", "Cold", "Winter"],},
+"DarkPurple6": {"BACKGROUND": "#070739","TEXT": "#e1e099","INPUT": "#c327ab","TEXT_INPUT": "#e1e099","SCROLL": "#c327ab","BUTTON": ("#e1e099", "#521477"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#070739", "#521477", "#c327ab", "#e1e099"],"DESCRIPTION": ["#000000", "Purple", "Yellow", "Dark"],},
+"DarkPurple7": {"BACKGROUND": "#191930","TEXT": "#B1B7C5","INPUT": "#232B5C","TEXT_INPUT": "#D0E3E7","SCROLL": "#B1B7C5","BUTTON": ("#272D38", "#B1B7C5"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue13": {"BACKGROUND": "#203562","TEXT": "#e3e8f8","INPUT": "#c0c5cd","TEXT_INPUT": "#000000","SCROLL": "#c0c5cd","BUTTON": ("#FFFFFF", "#3e588f"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#203562", "#3e588f", "#c0c5cd", "#e3e8f8"],"DESCRIPTION": ["Blue", "Grey", "Wedding", "Cold"],},
+"DarkBrown5": {"BACKGROUND": "#3c1b1f","TEXT": "#f6e1b5","INPUT": "#e2bf81","TEXT_INPUT": "#000000","SCROLL": "#e2bf81","BUTTON": ("#3c1b1f", "#f6e1b5"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3c1b1f", "#b21e4b", "#e2bf81", "#f6e1b5"],"DESCRIPTION": ["Brown", "Red", "Yellow", "Warm"],},
+"DarkGreen3": {"BACKGROUND": "#062121","TEXT": "#eeeeee","INPUT": "#e4dcad","TEXT_INPUT": "#000000","SCROLL": "#e4dcad","BUTTON": ("#eeeeee", "#181810"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#062121", "#181810", "#e4dcad", "#eeeeee"],"DESCRIPTION": ["#000000", "#000000", "Brown", "Grey"],},
+"DarkBlack1": {"BACKGROUND": "#181810","TEXT": "#eeeeee","INPUT": "#e4dcad","TEXT_INPUT": "#000000","SCROLL": "#e4dcad","BUTTON": ("#FFFFFF", "#062121"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#062121", "#181810", "#e4dcad", "#eeeeee"],"DESCRIPTION": ["#000000", "#000000", "Brown", "Grey"],},
+"DarkGrey5": {"BACKGROUND": "#343434","TEXT": "#f3f3f3","INPUT": "#e9dcbe","TEXT_INPUT": "#000000","SCROLL": "#e9dcbe","BUTTON": ("#FFFFFF", "#8e8b82"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#343434", "#8e8b82", "#e9dcbe", "#f3f3f3"],"DESCRIPTION": ["Grey", "Brown"],},
+"LightBrown12": {"BACKGROUND": "#8e8b82","TEXT": "#f3f3f3","INPUT": "#e9dcbe","TEXT_INPUT": "#000000","SCROLL": "#e9dcbe","BUTTON": ("#f3f3f3", "#8e8b82"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#343434", "#8e8b82", "#e9dcbe", "#f3f3f3"],"DESCRIPTION": ["Grey", "Brown"],},
+"DarkTeal9": {"BACKGROUND": "#13445a","TEXT": "#fef4e8","INPUT": "#446878","TEXT_INPUT": "#FFFFFF","SCROLL": "#446878","BUTTON": ("#fef4e8", "#446878"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#13445a", "#970747", "#446878", "#fef4e8"],"DESCRIPTION": ["Red", "Grey", "Blue", "Wedding", "Retro"],},
+"DarkBlue14": {"BACKGROUND": "#21273d","TEXT": "#f1f6f8","INPUT": "#b9d4f1","TEXT_INPUT": "#000000","SCROLL": "#b9d4f1","BUTTON": ("#FFFFFF", "#6a759b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#21273d", "#6a759b", "#b9d4f1", "#f1f6f8"],"DESCRIPTION": ["Blue", "#000000", "Grey", "Cold", "Winter"],},
+"LightBlue6": {"BACKGROUND": "#f1f6f8","TEXT": "#21273d","INPUT": "#6a759b","TEXT_INPUT": "#FFFFFF","SCROLL": "#21273d","BUTTON": ("#f1f6f8", "#6a759b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#21273d", "#6a759b", "#b9d4f1", "#f1f6f8"],"DESCRIPTION": ["Blue", "#000000", "Grey", "Cold", "Winter"],},
+"DarkGreen4": {"BACKGROUND": "#044343","TEXT": "#e4e4e4","INPUT": "#045757","TEXT_INPUT": "#e4e4e4","SCROLL": "#045757","BUTTON": ("#e4e4e4", "#045757"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#222222", "#044343", "#045757", "#e4e4e4"],"DESCRIPTION": ["#000000", "Turquoise", "Grey", "Dark"],},
+"DarkGreen5": {"BACKGROUND": "#1b4b36","TEXT": "#e0e7f1","INPUT": "#aebd77","TEXT_INPUT": "#000000","SCROLL": "#aebd77","BUTTON": ("#FFFFFF", "#538f6a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#1b4b36", "#538f6a", "#aebd77", "#e0e7f1"],"DESCRIPTION": ["Green", "Grey"],},
+"DarkTeal10": {"BACKGROUND": "#0d3446","TEXT": "#d8dfe2","INPUT": "#71adb5","TEXT_INPUT": "#000000","SCROLL": "#71adb5","BUTTON": ("#FFFFFF", "#176d81"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#0d3446", "#176d81", "#71adb5", "#d8dfe2"],"DESCRIPTION": ["Grey", "Turquoise", "Winter", "Cold"],},
+"DarkGrey6": {"BACKGROUND": "#3e3e3e","TEXT": "#ededed","INPUT": "#68868c","TEXT_INPUT": "#ededed","SCROLL": "#68868c","BUTTON": ("#FFFFFF", "#405559"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3e3e3e", "#405559", "#68868c", "#ededed"],"DESCRIPTION": ["Grey", "Turquoise", "Winter"],},
+"DarkTeal11": {"BACKGROUND": "#405559","TEXT": "#ededed","INPUT": "#68868c","TEXT_INPUT": "#ededed","SCROLL": "#68868c","BUTTON": ("#ededed", "#68868c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3e3e3e", "#405559", "#68868c", "#ededed"],"DESCRIPTION": ["Grey", "Turquoise", "Winter"],},
+"LightBlue7": {"BACKGROUND": "#9ed0e0","TEXT": "#19483f","INPUT": "#5c868e","TEXT_INPUT": "#FFFFFF","SCROLL": "#19483f","BUTTON": ("#FFFFFF", "#19483f"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#19483f", "#5c868e", "#ff6a38", "#9ed0e0"],"DESCRIPTION": ["Orange", "Blue", "Turquoise"],},
+"LightGreen10": {"BACKGROUND": "#d8ebb5","TEXT": "#205d67","INPUT": "#639a67","TEXT_INPUT": "#FFFFFF","SCROLL": "#205d67","BUTTON": ("#d8ebb5", "#205d67"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#205d67", "#639a67", "#d9bf77", "#d8ebb5"],"DESCRIPTION": ["Blue", "Green", "Brown", "Vintage"],},
+"DarkBlue15": {"BACKGROUND": "#151680","TEXT": "#f1fea4","INPUT": "#375fc0","TEXT_INPUT": "#f1fea4","SCROLL": "#375fc0","BUTTON": ("#f1fea4", "#1c44ac"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#151680", "#1c44ac", "#375fc0", "#f1fea4"],"DESCRIPTION": ["Blue", "Yellow", "Cold"],},
+"DarkBlue16": {"BACKGROUND": "#1c44ac","TEXT": "#f1fea4","INPUT": "#375fc0","TEXT_INPUT": "#f1fea4","SCROLL": "#375fc0","BUTTON": ("#f1fea4", "#151680"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#151680", "#1c44ac", "#375fc0", "#f1fea4"],"DESCRIPTION": ["Blue", "Yellow", "Cold"],},
+"DarkTeal12": {"BACKGROUND": "#004a7c","TEXT": "#fafafa","INPUT": "#e8f1f5","TEXT_INPUT": "#000000","SCROLL": "#e8f1f5","BUTTON": ("#fafafa", "#005691"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#004a7c", "#005691", "#e8f1f5", "#fafafa"],"DESCRIPTION": ["Grey", "Blue", "Cold", "Winter"],},
+"LightBrown13": {"BACKGROUND": "#ebf5ee","TEXT": "#921224","INPUT": "#bdc6b8","TEXT_INPUT": "#921224","SCROLL": "#921224","BUTTON": ("#FFFFFF", "#921224"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#921224", "#bdc6b8", "#bce0da", "#ebf5ee"],"DESCRIPTION": ["Red", "Blue", "Grey", "Vintage", "Wedding"],},
+"DarkBlue17": {"BACKGROUND": "#21294c","TEXT": "#f9f2d7","INPUT": "#f2dea8","TEXT_INPUT": "#000000","SCROLL": "#f2dea8","BUTTON": ("#f9f2d7", "#141829"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#141829", "#21294c", "#f2dea8", "#f9f2d7"],"DESCRIPTION": ["#000000", "Blue", "Yellow"],},
+"DarkBrown6": {"BACKGROUND": "#785e4d","TEXT": "#f2eee3","INPUT": "#baaf92","TEXT_INPUT": "#000000","SCROLL": "#baaf92","BUTTON": ("#FFFFFF", "#785e4d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#785e4d", "#ff8426", "#baaf92", "#f2eee3"],"DESCRIPTION": ["Grey", "Brown", "Orange", "Autumn"],},
+"DarkGreen6": {"BACKGROUND": "#5c715e","TEXT": "#f2f9f1","INPUT": "#ddeedf","TEXT_INPUT": "#000000","SCROLL": "#ddeedf","BUTTON": ("#f2f9f1", "#5c715e"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#5c715e", "#b6cdbd", "#ddeedf", "#f2f9f1"],"DESCRIPTION": ["Grey", "Green", "Vintage"],},
+"DarkGreen7": {"BACKGROUND": "#0C231E","TEXT": "#efbe1c","INPUT": "#153C33","TEXT_INPUT": "#efbe1c","SCROLL": "#153C33","BUTTON": ("#efbe1c", "#153C33"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey7": {"BACKGROUND": "#4b586e","TEXT": "#dddddd","INPUT": "#574e6d","TEXT_INPUT": "#dddddd","SCROLL": "#574e6d","BUTTON": ("#dddddd", "#43405d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#43405d", "#4b586e", "#574e6d", "#dddddd"],"DESCRIPTION": ["Grey", "Winter", "Cold"],},
+"DarkRed2": {"BACKGROUND": "#ab1212","TEXT": "#f6e4b5","INPUT": "#cd3131","TEXT_INPUT": "#f6e4b5","SCROLL": "#cd3131","BUTTON": ("#f6e4b5", "#ab1212"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#ab1212", "#1fad9f", "#cd3131", "#f6e4b5"],"DESCRIPTION": ["Turquoise", "Red", "Yellow"],},
+"LightGrey6": {"BACKGROUND": "#e3e3e3","TEXT": "#233142","INPUT": "#455d7a","TEXT_INPUT": "#e3e3e3","SCROLL": "#233142","BUTTON": ("#e3e3e3", "#455d7a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#233142", "#455d7a", "#f95959", "#e3e3e3"],"DESCRIPTION": ["#000000", "Blue", "Red", "Grey"],},
+"HotDogStand": {"BACKGROUND": "red","TEXT": "yellow","INPUT": "yellow","TEXT_INPUT": "#000000","SCROLL": "yellow","BUTTON": ("red", "yellow"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey8": {"BACKGROUND": "#19232D","TEXT": "#ffffff","INPUT": "#32414B","TEXT_INPUT": "#ffffff","SCROLL": "#505F69","BUTTON": ("#ffffff", "#32414B"),"PROGRESS": ("#505F69", "#32414B"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey9": {"BACKGROUND": "#36393F","TEXT": "#DCDDDE","INPUT": "#40444B","TEXT_INPUT": "#ffffff","SCROLL": "#202225","BUTTON": ("#202225", "#B9BBBE"),"PROGRESS": ("#202225", "#40444B"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey10": {"BACKGROUND": "#1c1e23","TEXT": "#cccdcf","INPUT": "#272a31","TEXT_INPUT": "#8b9fde","SCROLL": "#313641","BUTTON": ("#f5f5f6", "#2e3d5a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey11": {"BACKGROUND": "#1c1e23","TEXT": "#cccdcf","INPUT": "#313641","TEXT_INPUT": "#cccdcf","SCROLL": "#313641","BUTTON": ("#f5f5f6", "#313641"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey12": {"BACKGROUND": "#1c1e23","TEXT": "#8b9fde","INPUT": "#313641","TEXT_INPUT": "#8b9fde","SCROLL": "#313641","BUTTON": ("#cccdcf", "#2e3d5a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey13": {"BACKGROUND": "#1c1e23","TEXT": "#cccdcf","INPUT": "#272a31","TEXT_INPUT": "#cccdcf","SCROLL": "#313641","BUTTON": ("#8b9fde", "#313641"),"PROGRESS": ("#cccdcf", "#272a31"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey14": {"BACKGROUND": "#24292e","TEXT": "#fafbfc","INPUT": "#1d2125","TEXT_INPUT": "#fafbfc","SCROLL": "#1d2125","BUTTON": ("#fafbfc", "#155398"),"PROGRESS": ("#155398", "#1d2125"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBrown7": {"BACKGROUND": "#2c2417","TEXT": "#baa379","INPUT": "#baa379","TEXT_INPUT": "#000000","SCROLL": "#392e1c","BUTTON": ("#000000", "#baa379"),"PROGRESS": ("#baa379", "#453923"),"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"Python": {"BACKGROUND": "#3d7aab","TEXT": "#ffde56","INPUT": "#295273","TEXT_INPUT": "#ffde56","SCROLL": "#295273","BUTTON": ("#ffde56", "#295273"),"PROGRESS": ("#ffde56", "#295273"),"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+}
 
-                       'SystemDefaultForReal':
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': COLOR_SYSTEM_DEFAULT,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'SystemDefault1':
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': COLOR_SYSTEM_DEFAULT,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'Material1': {'BACKGROUND': '#E3F2FD',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#86A8FF',
-                                     'TEXT_INPUT': '#000000',
-                                     'SCROLL': '#86A8FF',
-                                     'BUTTON': ('#FFFFFF', '#5079D3'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'Material2': {'BACKGROUND': '#FAFAFA',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#004EA1',
-                                     'TEXT_INPUT': '#FFFFFF',
-                                     'SCROLL': '#5EA7FF',
-                                     'BUTTON': ('#FFFFFF', '#0079D3'),  # based on Reddit color
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'Reddit': {'BACKGROUND': '#ffffff',
-                                  'TEXT': '#1a1a1b',
-                                  'INPUT': '#dae0e6',
-                                  'TEXT_INPUT': '#222222',
-                                  'SCROLL': '#a5a4a4',
-                                  'BUTTON': ('#FFFFFF', '#0079d3'),
-                                  'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                  'BORDER': 1,
-                                  'SLIDER_DEPTH': 0,
-                                  'PROGRESS_DEPTH': 0,
-                                  'ACCENT1': '#ff5414',
-                                  'ACCENT2': '#33a8ff',
-                                  'ACCENT3': '#dbf0ff'},
-
-                       'Topanga': {'BACKGROUND': '#282923',
-                                   'TEXT': '#E7DB74',
-                                   'INPUT': '#393a32',
-                                   'TEXT_INPUT': '#E7C855',
-                                   'SCROLL': '#E7C855',
-                                   'BUTTON': ('#E7C855', '#284B5A'),
-                                   'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                   'BORDER': 1,
-                                   'SLIDER_DEPTH': 0,
-                                   'PROGRESS_DEPTH': 0,
-                                   'ACCENT1': '#c15226',
-                                   'ACCENT2': '#7a4d5f',
-                                   'ACCENT3': '#889743'},
-
-                       'GreenTan': {'BACKGROUND': '#9FB8AD',
-                                    'TEXT': COLOR_SYSTEM_DEFAULT,
-                                    'INPUT': '#F7F3EC', 'TEXT_INPUT': '#000000',
-                                    'SCROLL': '#F7F3EC',
-                                    'BUTTON': ('#FFFFFF', '#475841'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                    'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'Dark': {'BACKGROUND': '#404040',
-                                'TEXT': '#FFFFFF',
-                                'INPUT': '#4D4D4D',
-                                'TEXT_INPUT': '#FFFFFF',
-                                'SCROLL': '#707070',
-                                'BUTTON': ('#FFFFFF', '#004F00'),
-                                'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                'BORDER': 1,
-                                'SLIDER_DEPTH': 0,
-                                'PROGRESS_DEPTH': 0},
-
-                       'LightGreen': {'BACKGROUND': '#B7CECE',
-                                      'TEXT': '#000000',
-                                      'INPUT': '#FDFFF7',
-                                      'TEXT_INPUT': '#000000',
-                                      'SCROLL': '#FDFFF7',
-                                      'BUTTON': ('#FFFFFF', '#658268'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'ACCENT1': '#76506d',
-                                      'ACCENT2': '#5148f1',
-                                      'ACCENT3': '#0a1c84',
-                                      'PROGRESS_DEPTH': 0},
-
-                       'Dark2': {'BACKGROUND': '#404040',
-                                 'TEXT': '#FFFFFF',
-                                 'INPUT': '#FFFFFF',
-                                 'TEXT_INPUT': '#000000',
-                                 'SCROLL': '#707070',
-                                 'BUTTON': ('#FFFFFF', '#004F00'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'Black': {'BACKGROUND': '#000000',
-                                 'TEXT': '#FFFFFF',
-                                 'INPUT': '#4D4D4D',
-                                 'TEXT_INPUT': '#FFFFFF',
-                                 'SCROLL': '#707070',
-                                 'BUTTON': ('#000000', '#FFFFFF'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'Tan': {'BACKGROUND': '#fdf6e3',
-                               'TEXT': '#268bd1',
-                               'INPUT': '#eee8d5',
-                               'TEXT_INPUT': '#6c71c3',
-                               'SCROLL': '#eee8d5',
-                               'BUTTON': ('#FFFFFF', '#063542'),
-                               'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                               'BORDER': 1,
-                               'SLIDER_DEPTH': 0,
-                               'PROGRESS_DEPTH': 0},
-
-                       'TanBlue': {'BACKGROUND': '#e5dece',
-                                   'TEXT': '#063289',
-                                   'INPUT': '#f9f8f4',
-                                   'TEXT_INPUT': '#242834',
-                                   'SCROLL': '#eee8d5',
-                                   'BUTTON': ('#FFFFFF', '#063289'),
-                                   'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                   'BORDER': 1,
-                                   'SLIDER_DEPTH': 0,
-                                   'PROGRESS_DEPTH': 0},
-
-                       'DarkTanBlue': {'BACKGROUND': '#242834',
-                                       'TEXT': '#dfe6f8',
-                                       'INPUT': '#97755c',
-                                       'TEXT_INPUT': '#FFFFFF',
-                                       'SCROLL': '#a9afbb',
-                                       'BUTTON': ('#FFFFFF', '#063289'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkAmber': {'BACKGROUND': '#2c2825',
-                                     'TEXT': '#fdcb52',
-                                     'INPUT': '#705e52',
-                                     'TEXT_INPUT': '#fdcb52',
-                                     'SCROLL': '#705e52',
-                                     'BUTTON': ('#000000', '#fdcb52'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue': {'BACKGROUND': '#1a2835',
-                                    'TEXT': '#d1ecff',
-                                    'INPUT': '#335267',
-                                    'TEXT_INPUT': '#acc2d0',
-                                    'SCROLL': '#1b6497',
-                                    'BUTTON': ('#000000', '#fafaf8'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                    'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'Reds': {'BACKGROUND': '#280001',
-                                'TEXT': '#FFFFFF',
-                                'INPUT': '#d8d584',
-                                'TEXT_INPUT': '#000000',
-                                'SCROLL': '#763e00',
-                                'BUTTON': ('#000000', '#daad28'),
-                                'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                'BORDER': 1,
-                                'SLIDER_DEPTH': 0,
-                                'PROGRESS_DEPTH': 0},
-
-                       'Green': {'BACKGROUND': '#82a459',
-                                 'TEXT': '#000000',
-                                 'INPUT': '#d8d584',
-                                 'TEXT_INPUT': '#000000',
-                                 'SCROLL': '#e3ecf3',
-                                 'BUTTON': ('#FFFFFF', '#517239'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'BluePurple': {'BACKGROUND': '#A5CADD',
-                                      'TEXT': '#6E266E',
-                                      'INPUT': '#E0F5FF',
-                                      'TEXT_INPUT': '#000000',
-                                      'SCROLL': '#E0F5FF',
-                                      'BUTTON': ('#FFFFFF', '#303952'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'Purple': {'BACKGROUND': '#B0AAC2',
-                                  'TEXT': '#000000',
-                                  'INPUT': '#F2EFE8',
-                                  'SCROLL': '#F2EFE8',
-                                  'TEXT_INPUT': '#000000',
-                                  'BUTTON': ('#000000', '#C2D4D8'),
-                                  'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                  'BORDER': 1,
-                                  'SLIDER_DEPTH': 0,
-                                  'PROGRESS_DEPTH': 0},
-
-                       'BlueMono': {'BACKGROUND': '#AAB6D3',
-                                    'TEXT': '#000000',
-                                    'INPUT': '#F1F4FC',
-                                    'SCROLL': '#F1F4FC',
-                                    'TEXT_INPUT': '#000000',
-                                    'BUTTON': ('#FFFFFF', '#7186C7'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                    'BORDER': 1,
-                                    'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'GreenMono': {'BACKGROUND': '#A8C1B4',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#DDE0DE',
-                                     'SCROLL': '#E3E3E3',
-                                     'TEXT_INPUT': '#000000',
-                                     'BUTTON': ('#FFFFFF', '#6D9F85'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'BrownBlue': {'BACKGROUND': '#64778d',
-                                     'TEXT': '#FFFFFF',
-                                     'INPUT': '#f0f3f7',
-                                     'SCROLL': '#A6B2BE',
-                                     'TEXT_INPUT': '#000000',
-                                     'BUTTON': ('#FFFFFF', '#283b5b'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'BrightColors': {'BACKGROUND': '#b4ffb4',
-                                        'TEXT': '#000000',
-                                        'INPUT': '#ffff64',
-                                        'SCROLL': '#ffb482',
-                                        'TEXT_INPUT': '#000000',
-                                        'BUTTON': ('#000000', '#ffa0dc'),
-                                        'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                        'BORDER': 1,
-                                        'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0},
-
-                       'NeutralBlue': {'BACKGROUND': '#92aa9d',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#fcfff6',
-                                       'SCROLL': '#fcfff6',
-                                       'TEXT_INPUT': '#000000',
-                                       'BUTTON': ('#000000', '#d0dbbd'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'Kayak': {'BACKGROUND': '#a7ad7f',
-                                 'TEXT': '#000000',
-                                 'INPUT': '#e6d3a8',
-                                 'SCROLL': '#e6d3a8',
-                                 'TEXT_INPUT': '#000000',
-                                 'BUTTON': ('#FFFFFF', '#5d907d'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'SandyBeach': {'BACKGROUND': '#efeccb',
-                                      'TEXT': '#012f2f',
-                                      'INPUT': '#e6d3a8',
-                                      'SCROLL': '#e6d3a8',
-                                      'TEXT_INPUT': '#012f2f',
-                                      'BUTTON': ('#FFFFFF', '#046380'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'TealMono': {'BACKGROUND': '#a8cfdd',
-                                    'TEXT': '#000000',
-                                    'INPUT': '#dfedf2',
-                                    'SCROLL': '#dfedf2',
-                                    'TEXT_INPUT': '#000000',
-                                    'BUTTON': ('#FFFFFF', '#183440'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                    'BORDER': 1,
-                                    'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-                       ################################## Renamed Original Themes ##################################
-                       'Default':  # plain gray but blue buttons
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'Default1':  # everything is gray
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': COLOR_SYSTEM_DEFAULT,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'DefaultNoMoreNagging':  # a duplicate of "Default" for users that are tired of the nag screen
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'LightBlue': {'BACKGROUND': '#E3F2FD',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#86A8FF',
-                                     'TEXT_INPUT': '#000000',
-                                     'SCROLL': '#86A8FF',
-                                     'BUTTON': ('#FFFFFF', '#5079D3'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'LightGrey': {'BACKGROUND': '#FAFAFA',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#004EA1',
-                                     'TEXT_INPUT': '#FFFFFF',
-                                     'SCROLL': '#5EA7FF',
-                                     'BUTTON': ('#FFFFFF', '#0079D3'),  # based on Reddit color
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'LightGrey1': {'BACKGROUND': '#ffffff',
-                                      'TEXT': '#1a1a1b',
-                                      'INPUT': '#dae0e6',
-                                      'TEXT_INPUT': '#222222',
-                                      'SCROLL': '#a5a4a4',
-                                      'BUTTON': ('#FFFFFF', '#0079d3'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0,
-                                      'ACCENT1': '#ff5414',
-                                      'ACCENT2': '#33a8ff',
-                                      'ACCENT3': '#dbf0ff'},
-
-                       'DarkBrown': {'BACKGROUND': '#282923',
-                                     'TEXT': '#E7DB74',
-                                     'INPUT': '#393a32',
-                                     'TEXT_INPUT': '#E7C855',
-                                     'SCROLL': '#E7C855',
-                                     'BUTTON': ('#E7C855', '#284B5A'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#c15226',
-                                     'ACCENT2': '#7a4d5f',
-                                     'ACCENT3': '#889743'},
-
-                       'LightGreen1': {'BACKGROUND': '#9FB8AD',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#F7F3EC', 'TEXT_INPUT': '#000000',
-                                       'SCROLL': '#F7F3EC',
-                                       'BUTTON': ('#FFFFFF', '#475841'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkGrey': {'BACKGROUND': '#404040',
-                                    'TEXT': '#FFFFFF',
-                                    'INPUT': '#4D4D4D',
-                                    'TEXT_INPUT': '#FFFFFF',
-                                    'SCROLL': '#707070',
-                                    'BUTTON': ('#FFFFFF', '#004F00'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                    'BORDER': 1,
-                                    'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'LightGreen2': {'BACKGROUND': '#B7CECE',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#FDFFF7',
-                                       'TEXT_INPUT': '#000000',
-                                       'SCROLL': '#FDFFF7',
-                                       'BUTTON': ('#FFFFFF', '#658268'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'ACCENT1': '#76506d',
-                                       'ACCENT2': '#5148f1',
-                                       'ACCENT3': '#0a1c84',
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkGrey1': {'BACKGROUND': '#404040',
-                                     'TEXT': '#FFFFFF',
-                                     'INPUT': '#FFFFFF',
-                                     'TEXT_INPUT': '#000000',
-                                     'SCROLL': '#707070',
-                                     'BUTTON': ('#FFFFFF', '#004F00'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBlack': {'BACKGROUND': '#000000',
-                                     'TEXT': '#FFFFFF',
-                                     'INPUT': '#4D4D4D',
-                                     'TEXT_INPUT': '#FFFFFF',
-                                     'SCROLL': '#707070',
-                                     'BUTTON': ('#000000', '#FFFFFF'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'LightBrown': {'BACKGROUND': '#fdf6e3',
-                                      'TEXT': '#268bd1',
-                                      'INPUT': '#eee8d5',
-                                      'TEXT_INPUT': '#6c71c3',
-                                      'SCROLL': '#eee8d5',
-                                      'BUTTON': ('#FFFFFF', '#063542'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'LightBrown1': {'BACKGROUND': '#e5dece',
-                                       'TEXT': '#063289',
-                                       'INPUT': '#f9f8f4',
-                                       'TEXT_INPUT': '#242834',
-                                       'SCROLL': '#eee8d5',
-                                       'BUTTON': ('#FFFFFF', '#063289'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue1': {'BACKGROUND': '#242834',
-                                     'TEXT': '#dfe6f8',
-                                     'INPUT': '#97755c',
-                                     'TEXT_INPUT': '#FFFFFF',
-                                     'SCROLL': '#a9afbb',
-                                     'BUTTON': ('#FFFFFF', '#063289'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBrown1': {'BACKGROUND': '#2c2825',
-                                      'TEXT': '#fdcb52',
-                                      'INPUT': '#705e52',
-                                      'TEXT_INPUT': '#fdcb52',
-                                      'SCROLL': '#705e52',
-                                      'BUTTON': ('#000000', '#fdcb52'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue2': {'BACKGROUND': '#1a2835',
-                                     'TEXT': '#d1ecff',
-                                     'INPUT': '#335267',
-                                     'TEXT_INPUT': '#acc2d0',
-                                     'SCROLL': '#1b6497',
-                                     'BUTTON': ('#000000', '#fafaf8'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBrown2': {'BACKGROUND': '#280001',
-                                      'TEXT': '#FFFFFF',
-                                      'INPUT': '#d8d584',
-                                      'TEXT_INPUT': '#000000',
-                                      'SCROLL': '#763e00',
-                                      'BUTTON': ('#000000', '#daad28'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'DarkGreen': {'BACKGROUND': '#82a459',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#d8d584',
-                                     'TEXT_INPUT': '#000000',
-                                     'SCROLL': '#e3ecf3',
-                                     'BUTTON': ('#FFFFFF', '#517239'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'LightBlue1': {'BACKGROUND': '#A5CADD',
-                                      'TEXT': '#6E266E',
-                                      'INPUT': '#E0F5FF',
-                                      'TEXT_INPUT': '#000000',
-                                      'SCROLL': '#E0F5FF',
-                                      'BUTTON': ('#FFFFFF', '#303952'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'LightPurple': {'BACKGROUND': '#B0AAC2',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#F2EFE8',
-                                       'SCROLL': '#F2EFE8',
-                                       'TEXT_INPUT': '#000000',
-                                       'BUTTON': ('#000000', '#C2D4D8'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBlue2': {'BACKGROUND': '#AAB6D3',
-                                      'TEXT': '#000000',
-                                      'INPUT': '#F1F4FC',
-                                      'SCROLL': '#F1F4FC',
-                                      'TEXT_INPUT': '#000000',
-                                      'BUTTON': ('#FFFFFF', '#7186C7'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'LightGreen3': {'BACKGROUND': '#A8C1B4',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#DDE0DE',
-                                       'SCROLL': '#E3E3E3',
-                                       'TEXT_INPUT': '#000000',
-                                       'BUTTON': ('#FFFFFF', '#6D9F85'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue3': {'BACKGROUND': '#64778d',
-                                     'TEXT': '#FFFFFF',
-                                     'INPUT': '#f0f3f7',
-                                     'SCROLL': '#A6B2BE',
-                                     'TEXT_INPUT': '#000000',
-                                     'BUTTON': ('#FFFFFF', '#283b5b'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'LightGreen4': {'BACKGROUND': '#b4ffb4',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#ffff64',
-                                       'SCROLL': '#ffb482',
-                                       'TEXT_INPUT': '#000000',
-                                       'BUTTON': ('#000000', '#ffa0dc'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightGreen5': {'BACKGROUND': '#92aa9d',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#fcfff6',
-                                       'SCROLL': '#fcfff6',
-                                       'TEXT_INPUT': '#000000',
-                                       'BUTTON': ('#000000', '#d0dbbd'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBrown2': {'BACKGROUND': '#a7ad7f',
-                                       'TEXT': '#000000',
-                                       'INPUT': '#e6d3a8',
-                                       'SCROLL': '#e6d3a8',
-                                       'TEXT_INPUT': '#000000',
-                                       'BUTTON': ('#FFFFFF', '#5d907d'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBrown3': {'BACKGROUND': '#efeccb',
-                                       'TEXT': '#012f2f',
-                                       'INPUT': '#e6d3a8',
-                                       'SCROLL': '#e6d3a8',
-                                       'TEXT_INPUT': '#012f2f',
-                                       'BUTTON': ('#FFFFFF', '#046380'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                       'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBlue3': {'BACKGROUND': '#a8cfdd',
-                                      'TEXT': '#000000',
-                                      'INPUT': '#dfedf2',
-                                      'SCROLL': '#dfedf2',
-                                      'TEXT_INPUT': '#000000',
-                                      'BUTTON': ('#FFFFFF', '#183440'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       ################################## End Renamed Original Themes ##################################
-
-                       #
-                       'LightBrown4': {'BACKGROUND': '#d7c79e', 'TEXT': '#a35638', 'INPUT': '#9dab86', 'TEXT_INPUT': '#000000', 'SCROLL': '#a35638',
-                                       'BUTTON': ('#FFFFFF', '#a35638'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#a35638', '#9dab86', '#e08f62', '#d7c79e'], },
-                       'DarkTeal': {'BACKGROUND': '#003f5c', 'TEXT': '#fb5b5a', 'INPUT': '#bc4873', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#bc4873',
-                                    'BUTTON': ('#FFFFFF', '#fb5b5a'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                    'COLOR_LIST': ['#003f5c', '#472b62', '#bc4873', '#fb5b5a'], },
-                       'DarkPurple': {'BACKGROUND': '#472b62', 'TEXT': '#fb5b5a', 'INPUT': '#bc4873', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#bc4873',
-                                      'BUTTON': ('#FFFFFF', '#472b62'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#003f5c', '#472b62', '#bc4873', '#fb5b5a'], },
-                       'LightGreen6': {'BACKGROUND': '#eafbea', 'TEXT': '#1f6650', 'INPUT': '#6f9a8d', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#1f6650',
-                                       'BUTTON': ('#FFFFFF', '#1f6650'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#1f6650', '#6f9a8d', '#ea5e5e', '#eafbea'], },
-                       'DarkGrey2': {'BACKGROUND': '#2b2b28', 'TEXT': '#f8f8f8', 'INPUT': '#f1d6ab', 'TEXT_INPUT': '#000000', 'SCROLL': '#f1d6ab',
-                                     'BUTTON': ('#2b2b28', '#e3b04b'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#2b2b28', '#e3b04b', '#f1d6ab', '#f8f8f8'], },
-                       'LightBrown6': {'BACKGROUND': '#f9b282', 'TEXT': '#8f4426', 'INPUT': '#de6b35', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#8f4426',
-                                       'BUTTON': ('#FFFFFF', '#8f4426'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#8f4426', '#de6b35', '#64ccda', '#f9b282'], },
-                       'DarkTeal1': {'BACKGROUND': '#396362', 'TEXT': '#ffe7d1', 'INPUT': '#f6c89f', 'TEXT_INPUT': '#000000', 'SCROLL': '#f6c89f',
-                                     'BUTTON': ('#ffe7d1', '#4b8e8d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#396362', '#4b8e8d', '#f6c89f', '#ffe7d1'], },
-                       'LightBrown7': {'BACKGROUND': '#f6c89f', 'TEXT': '#396362', 'INPUT': '#4b8e8d', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#396362',
-                                       'BUTTON': ('#FFFFFF', '#396362'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#396362', '#4b8e8d', '#f6c89f', '#ffe7d1'], },
-                       'DarkPurple1': {'BACKGROUND': '#0c093c', 'TEXT': '#fad6d6', 'INPUT': '#eea5f6', 'TEXT_INPUT': '#000000', 'SCROLL': '#eea5f6',
-                                       'BUTTON': ('#FFFFFF', '#df42d1'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#0c093c', '#df42d1', '#eea5f6', '#fad6d6'], },
-                       'DarkGrey3': {'BACKGROUND': '#211717', 'TEXT': '#dfddc7', 'INPUT': '#f58b54', 'TEXT_INPUT': '#000000', 'SCROLL': '#f58b54',
-                                     'BUTTON': ('#dfddc7', '#a34a28'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#211717', '#a34a28', '#f58b54', '#dfddc7'], },
-                       'LightBrown8': {'BACKGROUND': '#dfddc7', 'TEXT': '#211717', 'INPUT': '#a34a28', 'TEXT_INPUT': '#dfddc7', 'SCROLL': '#211717',
-                                       'BUTTON': ('#dfddc7', '#a34a28'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#211717', '#a34a28', '#f58b54', '#dfddc7'], },
-                       'DarkBlue4': {'BACKGROUND': '#494ca2', 'TEXT': '#e3e7f1', 'INPUT': '#c6cbef', 'TEXT_INPUT': '#000000', 'SCROLL': '#c6cbef',
-                                     'BUTTON': ('#FFFFFF', '#8186d5'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#494ca2', '#8186d5', '#c6cbef', '#e3e7f1'], },
-                       'LightBlue4': {'BACKGROUND': '#5c94bd', 'TEXT': '#470938', 'INPUT': '#1a3e59', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#470938',
-                                      'BUTTON': ('#FFFFFF', '#470938'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#470938', '#1a3e59', '#5c94bd', '#f2d6eb'], },
-                       'DarkTeal2': {'BACKGROUND': '#394a6d', 'TEXT': '#c0ffb3', 'INPUT': '#52de97', 'TEXT_INPUT': '#000000', 'SCROLL': '#52de97',
-                                     'BUTTON': ('#c0ffb3', '#394a6d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#394a6d', '#3c9d9b', '#52de97', '#c0ffb3'], },
-                       'DarkTeal3': {'BACKGROUND': '#3c9d9b', 'TEXT': '#c0ffb3', 'INPUT': '#52de97', 'TEXT_INPUT': '#000000', 'SCROLL': '#52de97',
-                                     'BUTTON': ('#c0ffb3', '#394a6d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#394a6d', '#3c9d9b', '#52de97', '#c0ffb3'], },
-                       'DarkPurple5': {'BACKGROUND': '#730068', 'TEXT': '#f6f078', 'INPUT': '#01d28e', 'TEXT_INPUT': '#000000', 'SCROLL': '#01d28e',
-                                       'BUTTON': ('#f6f078', '#730068'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#730068', '#434982', '#01d28e', '#f6f078'], },
-                       'DarkPurple2': {'BACKGROUND': '#202060', 'TEXT': '#b030b0', 'INPUT': '#602080', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#602080',
-                                       'BUTTON': ('#FFFFFF', '#202040'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#202040', '#202060', '#602080', '#b030b0'], },
-                       'DarkBlue5': {'BACKGROUND': '#000272', 'TEXT': '#ff6363', 'INPUT': '#a32f80', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#a32f80',
-                                     'BUTTON': ('#FFFFFF', '#341677'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#000272', '#341677', '#a32f80', '#ff6363'], },
-                       'LightGrey2': {'BACKGROUND': '#f6f6f6', 'TEXT': '#420000', 'INPUT': '#d4d7dd', 'TEXT_INPUT': '#420000', 'SCROLL': '#420000',
-                                      'BUTTON': ('#420000', '#d4d7dd'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#420000', '#d4d7dd', '#eae9e9', '#f6f6f6'], },
-                       'LightGrey3': {'BACKGROUND': '#eae9e9', 'TEXT': '#420000', 'INPUT': '#d4d7dd', 'TEXT_INPUT': '#420000', 'SCROLL': '#420000',
-                                      'BUTTON': ('#420000', '#d4d7dd'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#420000', '#d4d7dd', '#eae9e9', '#f6f6f6'], },
-                       'DarkBlue6': {'BACKGROUND': '#01024e', 'TEXT': '#ff6464', 'INPUT': '#8b4367', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#8b4367',
-                                     'BUTTON': ('#FFFFFF', '#543864'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#01024e', '#543864', '#8b4367', '#ff6464'], },
-                       'DarkBlue7': {'BACKGROUND': '#241663', 'TEXT': '#eae7af', 'INPUT': '#a72693', 'TEXT_INPUT': '#eae7af', 'SCROLL': '#a72693',
-                                     'BUTTON': ('#eae7af', '#160f30'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#160f30', '#241663', '#a72693', '#eae7af'], },
-                       'LightBrown9': {'BACKGROUND': '#f6d365', 'TEXT': '#3a1f5d', 'INPUT': '#c83660', 'TEXT_INPUT': '#f6d365', 'SCROLL': '#3a1f5d',
-                                       'BUTTON': ('#f6d365', '#c83660'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#3a1f5d', '#c83660', '#e15249', '#f6d365'], },
-                       'DarkPurple3': {'BACKGROUND': '#6e2142', 'TEXT': '#ffd692', 'INPUT': '#e16363', 'TEXT_INPUT': '#ffd692', 'SCROLL': '#e16363',
-                                       'BUTTON': ('#ffd692', '#943855'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#6e2142', '#943855', '#e16363', '#ffd692'], },
-                       'LightBrown10': {'BACKGROUND': '#ffd692', 'TEXT': '#6e2142', 'INPUT': '#943855', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#6e2142',
-                                        'BUTTON': ('#FFFFFF', '#6e2142'),
-                                        'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                        'COLOR_LIST': ['#6e2142', '#943855', '#e16363', '#ffd692'], },
-                       'DarkPurple4': {'BACKGROUND': '#200f21', 'TEXT': '#f638dc', 'INPUT': '#5a3d5c', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#5a3d5c',
-                                       'BUTTON': ('#FFFFFF', '#382039'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#200f21', '#382039', '#5a3d5c', '#f638dc'], },
-                       'LightBlue5': {'BACKGROUND': '#b2fcff', 'TEXT': '#3e64ff', 'INPUT': '#5edfff', 'TEXT_INPUT': '#000000', 'SCROLL': '#3e64ff',
-                                      'BUTTON': ('#FFFFFF', '#3e64ff'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#3e64ff', '#5edfff', '#b2fcff', '#ecfcff'], },
-                       'DarkTeal4': {'BACKGROUND': '#464159', 'TEXT': '#c7f0db', 'INPUT': '#8bbabb', 'TEXT_INPUT': '#000000', 'SCROLL': '#8bbabb',
-                                     'BUTTON': ('#FFFFFF', '#6c7b95'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#464159', '#6c7b95', '#8bbabb', '#c7f0db'], },
-                       'LightTeal': {'BACKGROUND': '#c7f0db', 'TEXT': '#464159', 'INPUT': '#6c7b95', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#464159',
-                                     'BUTTON': ('#FFFFFF', '#464159'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#464159', '#6c7b95', '#8bbabb', '#c7f0db'], },
-                       'DarkTeal5': {'BACKGROUND': '#8bbabb', 'TEXT': '#464159', 'INPUT': '#6c7b95', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#464159',
-                                     'BUTTON': ('#c7f0db', '#6c7b95'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#464159', '#6c7b95', '#8bbabb', '#c7f0db'], },
-                       'LightGrey4': {'BACKGROUND': '#faf5ef', 'TEXT': '#672f2f', 'INPUT': '#99b19c', 'TEXT_INPUT': '#672f2f', 'SCROLL': '#672f2f',
-                                      'BUTTON': ('#672f2f', '#99b19c'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#672f2f', '#99b19c', '#d7d1c9', '#faf5ef'], },
-                       'LightGreen7': {'BACKGROUND': '#99b19c', 'TEXT': '#faf5ef', 'INPUT': '#d7d1c9', 'TEXT_INPUT': '#000000', 'SCROLL': '#d7d1c9',
-                                       'BUTTON': ('#FFFFFF', '#99b19c'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#672f2f', '#99b19c', '#d7d1c9', '#faf5ef'], },
-                       'LightGrey5': {'BACKGROUND': '#d7d1c9', 'TEXT': '#672f2f', 'INPUT': '#99b19c', 'TEXT_INPUT': '#672f2f', 'SCROLL': '#672f2f',
-                                      'BUTTON': ('#FFFFFF', '#672f2f'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#672f2f', '#99b19c', '#d7d1c9', '#faf5ef'], },
-                       'DarkBrown3': {'BACKGROUND': '#a0855b', 'TEXT': '#f9f6f2', 'INPUT': '#f1d6ab', 'TEXT_INPUT': '#000000', 'SCROLL': '#f1d6ab',
-                                      'BUTTON': ('#FFFFFF', '#38470b'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#38470b', '#a0855b', '#f1d6ab', '#f9f6f2'], },
-                       'LightBrown11': {'BACKGROUND': '#f1d6ab', 'TEXT': '#38470b', 'INPUT': '#a0855b', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#38470b',
-                                        'BUTTON': ('#f9f6f2', '#a0855b'),
-                                        'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                        'COLOR_LIST': ['#38470b', '#a0855b', '#f1d6ab', '#f9f6f2'], },
-                       'DarkRed': {'BACKGROUND': '#83142c', 'TEXT': '#f9d276', 'INPUT': '#ad1d45', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#ad1d45',
-                                   'BUTTON': ('#f9d276', '#ad1d45'),
-                                   'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                   'COLOR_LIST': ['#44000d', '#83142c', '#ad1d45', '#f9d276'], },
-                       'DarkTeal6': {'BACKGROUND': '#204969', 'TEXT': '#fff7f7', 'INPUT': '#dadada', 'TEXT_INPUT': '#000000', 'SCROLL': '#dadada',
-                                     'BUTTON': ('#000000', '#fff7f7'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#204969', '#08ffc8', '#dadada', '#fff7f7'], },
-                       'DarkBrown4': {'BACKGROUND': '#252525', 'TEXT': '#ff0000', 'INPUT': '#af0404', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#af0404',
-                                      'BUTTON': ('#FFFFFF', '#252525'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#252525', '#414141', '#af0404', '#ff0000'], },
-                       'LightYellow': {'BACKGROUND': '#f4ff61', 'TEXT': '#27aa80', 'INPUT': '#32ff6a', 'TEXT_INPUT': '#000000', 'SCROLL': '#27aa80',
-                                       'BUTTON': ('#f4ff61', '#27aa80'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#27aa80', '#32ff6a', '#a8ff3e', '#f4ff61'], },
-                       'DarkGreen1': {'BACKGROUND': '#2b580c', 'TEXT': '#fdef96', 'INPUT': '#f7b71d', 'TEXT_INPUT': '#000000', 'SCROLL': '#f7b71d',
-                                      'BUTTON': ('#fdef96', '#2b580c'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#2b580c', '#afa939', '#f7b71d', '#fdef96'], },
-
-                       'LightGreen8': {'BACKGROUND': '#c8dad3', 'TEXT': '#63707e', 'INPUT': '#93b5b3', 'TEXT_INPUT': '#000000', 'SCROLL': '#63707e',
-                                       'BUTTON': ('#FFFFFF', '#63707e'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#63707e', '#93b5b3', '#c8dad3', '#f2f6f5'], },
-
-                       'DarkTeal7': {'BACKGROUND': '#248ea9', 'TEXT': '#fafdcb', 'INPUT': '#aee7e8', 'TEXT_INPUT': '#000000', 'SCROLL': '#aee7e8',
-                                     'BUTTON': ('#000000', '#fafdcb'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#248ea9', '#28c3d4', '#aee7e8', '#fafdcb'], },
-                       'DarkBlue8': {'BACKGROUND': '#454d66', 'TEXT': '#d9d872', 'INPUT': '#58b368', 'TEXT_INPUT': '#000000', 'SCROLL': '#58b368',
-                                     'BUTTON': ('#000000', '#009975'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#009975', '#454d66', '#58b368', '#d9d872'], },
-                       'DarkBlue9': {'BACKGROUND': '#263859', 'TEXT': '#ff6768', 'INPUT': '#6b778d', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#6b778d',
-                                     'BUTTON': ('#ff6768', '#263859'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#17223b', '#263859', '#6b778d', '#ff6768'], },
-                       'DarkBlue10': {'BACKGROUND': '#0028ff', 'TEXT': '#f1f4df', 'INPUT': '#10eaf0', 'TEXT_INPUT': '#000000', 'SCROLL': '#10eaf0',
-                                      'BUTTON': ('#f1f4df', '#24009c'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#24009c', '#0028ff', '#10eaf0', '#f1f4df'], },
-                       'DarkBlue11': {'BACKGROUND': '#6384b3', 'TEXT': '#e6f0b6', 'INPUT': '#b8e9c0', 'TEXT_INPUT': '#000000', 'SCROLL': '#b8e9c0',
-                                      'BUTTON': ('#e6f0b6', '#684949'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#684949', '#6384b3', '#b8e9c0', '#e6f0b6'], },
-
-                       'DarkTeal8': {'BACKGROUND': '#71a0a5', 'TEXT': '#212121', 'INPUT': '#665c84', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#212121',
-                                     'BUTTON': ('#fab95b', '#665c84'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#212121', '#665c84', '#71a0a5', '#fab95b']},
-                       'DarkRed1': {'BACKGROUND': '#c10000', 'TEXT': '#eeeeee', 'INPUT': '#dedede', 'TEXT_INPUT': '#000000', 'SCROLL': '#dedede',
-                                    'BUTTON': ('#c10000', '#eeeeee'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                    'COLOR_LIST': ['#c10000', '#ff4949', '#dedede', '#eeeeee'], },
-                       'LightBrown5': {'BACKGROUND': '#fff591', 'TEXT': '#e41749', 'INPUT': '#f5587b', 'TEXT_INPUT': '#000000', 'SCROLL': '#e41749',
-                                       'BUTTON': ('#fff591', '#e41749'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#e41749', '#f5587b', '#ff8a5c', '#fff591']},
-                       'LightGreen9': {'BACKGROUND': '#f1edb3', 'TEXT': '#3b503d', 'INPUT': '#4a746e', 'TEXT_INPUT': '#f1edb3', 'SCROLL': '#3b503d',
-                                       'BUTTON': ('#f1edb3', '#3b503d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#3b503d', '#4a746e', '#c8cf94', '#f1edb3'], 'DESCRIPTION': ['Green', 'Turquoise', 'Yellow']},
-                       'DarkGreen2': {'BACKGROUND': '#3b503d', 'TEXT': '#f1edb3', 'INPUT': '#c8cf94', 'TEXT_INPUT': '#000000', 'SCROLL': '#c8cf94',
-                                      'BUTTON': ('#f1edb3', '#3b503d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#3b503d', '#4a746e', '#c8cf94', '#f1edb3'], 'DESCRIPTION': ['Green', 'Turquoise', 'Yellow']},
-                       'LightGray1': {'BACKGROUND': '#f2f2f2', 'TEXT': '#222831', 'INPUT': '#393e46', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#222831',
-                                      'BUTTON': ('#f2f2f2', '#222831'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#222831', '#393e46', '#f96d00', '#f2f2f2'],
-                                      'DESCRIPTION': ['#000000', 'Grey', 'Orange', 'Grey', 'Autumn']},
-                       'DarkGrey4': {'BACKGROUND': '#52524e', 'TEXT': '#e9e9e5', 'INPUT': '#d4d6c8', 'TEXT_INPUT': '#000000', 'SCROLL': '#d4d6c8',
-                                     'BUTTON': ('#FFFFFF', '#9a9b94'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#52524e', '#9a9b94', '#d4d6c8', '#e9e9e5'],
-                                     'DESCRIPTION': ['Grey', 'Pastel', 'Winter']},
-                       'DarkBlue12': {'BACKGROUND': '#324e7b', 'TEXT': '#f8f8f8', 'INPUT': '#86a6df', 'TEXT_INPUT': '#000000', 'SCROLL': '#86a6df',
-                                      'BUTTON': ('#FFFFFF', '#5068a9'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#324e7b', '#5068a9', '#86a6df', '#f8f8f8'],
-                                      'DESCRIPTION': ['Blue', 'Grey', 'Cold', 'Winter']},
-                       'DarkPurple6': {'BACKGROUND': '#070739', 'TEXT': '#e1e099', 'INPUT': '#c327ab', 'TEXT_INPUT': '#e1e099', 'SCROLL': '#c327ab',
-                                       'BUTTON': ('#e1e099', '#521477'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#070739', '#521477', '#c327ab', '#e1e099'],
-                                       'DESCRIPTION': ['#000000', 'Purple', 'Yellow', 'Dark']},
-
-                        'DarkPurple7' : {'BACKGROUND': '#191930',
-                                      'TEXT': '#B1B7C5',
-                                      'INPUT': '#232B5C',
-                                      'TEXT_INPUT': '#D0E3E7',
-                                      'SCROLL': '#B1B7C5',
-                                      'BUTTON': ('#272D38', '#B1B7C5'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      },
-                       'DarkBlue13': {'BACKGROUND': '#203562', 'TEXT': '#e3e8f8', 'INPUT': '#c0c5cd', 'TEXT_INPUT': '#000000', 'SCROLL': '#c0c5cd',
-                                      'BUTTON': ('#FFFFFF', '#3e588f'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#203562', '#3e588f', '#c0c5cd', '#e3e8f8'],
-                                      'DESCRIPTION': ['Blue', 'Grey', 'Wedding', 'Cold']},
-                       'DarkBrown5': {'BACKGROUND': '#3c1b1f', 'TEXT': '#f6e1b5', 'INPUT': '#e2bf81', 'TEXT_INPUT': '#000000', 'SCROLL': '#e2bf81',
-                                      'BUTTON': ('#3c1b1f', '#f6e1b5'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#3c1b1f', '#b21e4b', '#e2bf81', '#f6e1b5'],
-                                      'DESCRIPTION': ['Brown', 'Red', 'Yellow', 'Warm']},
-                       'DarkGreen3': {'BACKGROUND': '#062121', 'TEXT': '#eeeeee', 'INPUT': '#e4dcad', 'TEXT_INPUT': '#000000', 'SCROLL': '#e4dcad',
-                                      'BUTTON': ('#eeeeee', '#181810'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#062121', '#181810', '#e4dcad', '#eeeeee'],
-                                      'DESCRIPTION': ['#000000', '#000000', 'Brown', 'Grey']},
-                       'DarkBlack1': {'BACKGROUND': '#181810', 'TEXT': '#eeeeee', 'INPUT': '#e4dcad', 'TEXT_INPUT': '#000000', 'SCROLL': '#e4dcad',
-                                      'BUTTON': ('#FFFFFF', '#062121'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#062121', '#181810', '#e4dcad', '#eeeeee'],
-                                      'DESCRIPTION': ['#000000', '#000000', 'Brown', 'Grey']},
-                       'DarkGrey5': {'BACKGROUND': '#343434', 'TEXT': '#f3f3f3', 'INPUT': '#e9dcbe', 'TEXT_INPUT': '#000000', 'SCROLL': '#e9dcbe',
-                                     'BUTTON': ('#FFFFFF', '#8e8b82'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#343434', '#8e8b82', '#e9dcbe', '#f3f3f3'], 'DESCRIPTION': ['Grey', 'Brown']},
-                       'LightBrown12': {'BACKGROUND': '#8e8b82', 'TEXT': '#f3f3f3', 'INPUT': '#e9dcbe', 'TEXT_INPUT': '#000000', 'SCROLL': '#e9dcbe',
-                                        'BUTTON': ('#f3f3f3', '#8e8b82'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#343434', '#8e8b82', '#e9dcbe', '#f3f3f3'], 'DESCRIPTION': ['Grey', 'Brown']},
-                       'DarkTeal9': {'BACKGROUND': '#13445a', 'TEXT': '#fef4e8', 'INPUT': '#446878', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#446878',
-                                     'BUTTON': ('#fef4e8', '#446878'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#13445a', '#970747', '#446878', '#fef4e8'],
-                                     'DESCRIPTION': ['Red', 'Grey', 'Blue', 'Wedding', 'Retro']},
-                       'DarkBlue14': {'BACKGROUND': '#21273d', 'TEXT': '#f1f6f8', 'INPUT': '#b9d4f1', 'TEXT_INPUT': '#000000', 'SCROLL': '#b9d4f1',
-                                      'BUTTON': ('#FFFFFF', '#6a759b'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#21273d', '#6a759b', '#b9d4f1', '#f1f6f8'],
-                                      'DESCRIPTION': ['Blue', '#000000', 'Grey', 'Cold', 'Winter']},
-                       'LightBlue6': {'BACKGROUND': '#f1f6f8', 'TEXT': '#21273d', 'INPUT': '#6a759b', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#21273d',
-                                      'BUTTON': ('#f1f6f8', '#6a759b'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#21273d', '#6a759b', '#b9d4f1', '#f1f6f8'],
-                                      'DESCRIPTION': ['Blue', '#000000', 'Grey', 'Cold', 'Winter']},
-                       'DarkGreen4': {'BACKGROUND': '#044343', 'TEXT': '#e4e4e4', 'INPUT': '#045757', 'TEXT_INPUT': '#e4e4e4', 'SCROLL': '#045757',
-                                      'BUTTON': ('#e4e4e4', '#045757'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#222222', '#044343', '#045757', '#e4e4e4'],
-                                      'DESCRIPTION': ['#000000', 'Turquoise', 'Grey', 'Dark']},
-                       'DarkGreen5': {'BACKGROUND': '#1b4b36', 'TEXT': '#e0e7f1', 'INPUT': '#aebd77', 'TEXT_INPUT': '#000000', 'SCROLL': '#aebd77',
-                                      'BUTTON': ('#FFFFFF', '#538f6a'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#1b4b36', '#538f6a', '#aebd77', '#e0e7f1'], 'DESCRIPTION': ['Green', 'Grey']},
-                       'DarkTeal10': {'BACKGROUND': '#0d3446', 'TEXT': '#d8dfe2', 'INPUT': '#71adb5', 'TEXT_INPUT': '#000000', 'SCROLL': '#71adb5',
-                                      'BUTTON': ('#FFFFFF', '#176d81'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#0d3446', '#176d81', '#71adb5', '#d8dfe2'],
-                                      'DESCRIPTION': ['Grey', 'Turquoise', 'Winter', 'Cold']},
-                       'DarkGrey6': {'BACKGROUND': '#3e3e3e', 'TEXT': '#ededed', 'INPUT': '#68868c', 'TEXT_INPUT': '#ededed', 'SCROLL': '#68868c',
-                                     'BUTTON': ('#FFFFFF', '#405559'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#3e3e3e', '#405559', '#68868c', '#ededed'],
-                                     'DESCRIPTION': ['Grey', 'Turquoise', 'Winter']},
-                       'DarkTeal11': {'BACKGROUND': '#405559', 'TEXT': '#ededed', 'INPUT': '#68868c', 'TEXT_INPUT': '#ededed', 'SCROLL': '#68868c',
-                                      'BUTTON': ('#ededed', '#68868c'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#3e3e3e', '#405559', '#68868c', '#ededed'],
-                                      'DESCRIPTION': ['Grey', 'Turquoise', 'Winter']},
-                       'LightBlue7': {'BACKGROUND': '#9ed0e0', 'TEXT': '#19483f', 'INPUT': '#5c868e', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#19483f',
-                                      'BUTTON': ('#FFFFFF', '#19483f'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#19483f', '#5c868e', '#ff6a38', '#9ed0e0'],
-                                      'DESCRIPTION': ['Orange', 'Blue', 'Turquoise']},
-                       'LightGreen10': {'BACKGROUND': '#d8ebb5', 'TEXT': '#205d67', 'INPUT': '#639a67', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#205d67',
-                                        'BUTTON': ('#d8ebb5', '#205d67'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#205d67', '#639a67', '#d9bf77', '#d8ebb5'],
-                                        'DESCRIPTION': ['Blue', 'Green', 'Brown', 'Vintage']},
-                       'DarkBlue15': {'BACKGROUND': '#151680', 'TEXT': '#f1fea4', 'INPUT': '#375fc0', 'TEXT_INPUT': '#f1fea4', 'SCROLL': '#375fc0',
-                                      'BUTTON': ('#f1fea4', '#1c44ac'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#151680', '#1c44ac', '#375fc0', '#f1fea4'],
-                                      'DESCRIPTION': ['Blue', 'Yellow', 'Cold']},
-                       'DarkBlue16': {'BACKGROUND': '#1c44ac', 'TEXT': '#f1fea4', 'INPUT': '#375fc0', 'TEXT_INPUT': '#f1fea4', 'SCROLL': '#375fc0',
-                                      'BUTTON': ('#f1fea4', '#151680'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#151680', '#1c44ac', '#375fc0', '#f1fea4'],
-                                      'DESCRIPTION': ['Blue', 'Yellow', 'Cold']},
-                       'DarkTeal12': {'BACKGROUND': '#004a7c', 'TEXT': '#fafafa', 'INPUT': '#e8f1f5', 'TEXT_INPUT': '#000000', 'SCROLL': '#e8f1f5',
-                                      'BUTTON': ('#fafafa', '#005691'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#004a7c', '#005691', '#e8f1f5', '#fafafa'],
-                                      'DESCRIPTION': ['Grey', 'Blue', 'Cold', 'Winter']},
-                       'LightBrown13': {'BACKGROUND': '#ebf5ee', 'TEXT': '#921224', 'INPUT': '#bdc6b8', 'TEXT_INPUT': '#921224', 'SCROLL': '#921224',
-                                        'BUTTON': ('#FFFFFF', '#921224'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#921224', '#bdc6b8', '#bce0da', '#ebf5ee'],
-                                        'DESCRIPTION': ['Red', 'Blue', 'Grey', 'Vintage', 'Wedding']},
-                       'DarkBlue17': {'BACKGROUND': '#21294c', 'TEXT': '#f9f2d7', 'INPUT': '#f2dea8', 'TEXT_INPUT': '#000000', 'SCROLL': '#f2dea8',
-                                      'BUTTON': ('#f9f2d7', '#141829'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#141829', '#21294c', '#f2dea8', '#f9f2d7'],
-                                      'DESCRIPTION': ['#000000', 'Blue', 'Yellow']},
-                       'DarkBrown6': {'BACKGROUND': '#785e4d', 'TEXT': '#f2eee3', 'INPUT': '#baaf92', 'TEXT_INPUT': '#000000', 'SCROLL': '#baaf92',
-                                      'BUTTON': ('#FFFFFF', '#785e4d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#785e4d', '#ff8426', '#baaf92', '#f2eee3'],
-                                      'DESCRIPTION': ['Grey', 'Brown', 'Orange', 'Autumn']},
-                       'DarkGreen6': {'BACKGROUND': '#5c715e', 'TEXT': '#f2f9f1', 'INPUT': '#ddeedf', 'TEXT_INPUT': '#000000', 'SCROLL': '#ddeedf',
-                                      'BUTTON': ('#f2f9f1', '#5c715e'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#5c715e', '#b6cdbd', '#ddeedf', '#f2f9f1'],
-                                      'DESCRIPTION': ['Grey', 'Green', 'Vintage']},
-                        'DarkGreen7' : {'BACKGROUND': '#0C231E',
-                                      'TEXT': '#efbe1c',
-                                      'INPUT': '#153C33',
-                                      'TEXT_INPUT': '#efbe1c',
-                                      'SCROLL': '#153C33',
-                                      'BUTTON': ('#efbe1c', '#153C33'),
-                                      # 'PROGRESS': ('#efbe1c', '#153C33'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      },
-                       'DarkGrey7': {'BACKGROUND': '#4b586e', 'TEXT': '#dddddd', 'INPUT': '#574e6d', 'TEXT_INPUT': '#dddddd', 'SCROLL': '#574e6d',
-                                     'BUTTON': ('#dddddd', '#43405d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#43405d', '#4b586e', '#574e6d', '#dddddd'],
-                                     'DESCRIPTION': ['Grey', 'Winter', 'Cold']},
-                       'DarkRed2': {'BACKGROUND': '#ab1212', 'TEXT': '#f6e4b5', 'INPUT': '#cd3131', 'TEXT_INPUT': '#f6e4b5', 'SCROLL': '#cd3131',
-                                    'BUTTON': ('#f6e4b5', '#ab1212'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#ab1212', '#1fad9f', '#cd3131', '#f6e4b5'],
-                                    'DESCRIPTION': ['Turquoise', 'Red', 'Yellow']},
-                       'LightGrey6': {'BACKGROUND': '#e3e3e3', 'TEXT': '#233142', 'INPUT': '#455d7a', 'TEXT_INPUT': '#e3e3e3', 'SCROLL': '#233142',
-                                      'BUTTON': ('#e3e3e3', '#455d7a'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#233142', '#455d7a', '#f95959', '#e3e3e3'],
-                                      'DESCRIPTION': ['#000000', 'Blue', 'Red', 'Grey']},
-                       'HotDogStand': {'BACKGROUND': 'red', 'TEXT': 'yellow', 'INPUT': 'yellow', 'TEXT_INPUT': '#000000', 'SCROLL': 'yellow',
-                                      'BUTTON': ('red', 'yellow'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0,},
-                       'DarkGrey8': {'BACKGROUND': '#19232D',
-                                        'TEXT': '#ffffff',
-                                        'INPUT': '#32414B',
-                                        'TEXT_INPUT': '#ffffff',
-                                        'SCROLL': '#505F69',
-                                        'BUTTON': ('#ffffff', '#32414B'),
-                                        'PROGRESS': ('#505F69', '#32414B'),
-                                        'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,},
-                       'DarkGrey9' : {'BACKGROUND': '#36393F',
-                                          'TEXT': '#DCDDDE',
-                                          'INPUT': '#40444B',
-                                          'TEXT_INPUT': '#ffffff',
-                                          'SCROLL': '#202225',
-                                          'BUTTON': ('#202225', '#B9BBBE'),
-                                          'PROGRESS': ('#202225', '#40444B'),
-                                          'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0},
-                       'DarkGrey10' : {'BACKGROUND': '#1c1e23',
-                                      'TEXT': '#cccdcf',
-                                      'INPUT': '#272a31',
-                                      'TEXT_INPUT': '#8b9fde',
-                                      'SCROLL': '#313641',
-                                      'BUTTON': ('#f5f5f6', '#2e3d5a'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0},
-                       'DarkGrey11' : {'BACKGROUND': '#1c1e23',
-                                      'TEXT': '#cccdcf',
-                                      'INPUT': '#313641',
-                                      'TEXT_INPUT': '#cccdcf',
-                                      'SCROLL': '#313641',
-                                      'BUTTON': ('#f5f5f6', '#313641'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0},
-                       'DarkGrey12' : {'BACKGROUND': '#1c1e23',
-                                      'TEXT': '#8b9fde',
-                                      'INPUT': '#313641',
-                                      'TEXT_INPUT': '#8b9fde',
-                                      'SCROLL': '#313641',
-                                      'BUTTON': ('#cccdcf', '#2e3d5a'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COMPUTE,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0},
-                       'DarkGrey13' : {'BACKGROUND': '#1c1e23',
-                                      'TEXT': '#cccdcf',
-                                      'INPUT': '#272a31',
-                                      'TEXT_INPUT': '#cccdcf',
-                                      'SCROLL': '#313641',
-                                      'BUTTON': ('#8b9fde', '#313641'),
-                                      'PROGRESS': ('#cccdcf','#272a31'),
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0},
-                       'DarkGrey14' : {'BACKGROUND': '#24292e',
-                                      'TEXT': '#fafbfc',
-                                      'INPUT': '#1d2125',
-                                      'TEXT_INPUT': '#fafbfc',
-                                      'SCROLL': '#1d2125',
-                                      'BUTTON': ('#fafbfc', '#155398'),
-                                      'PROGRESS': ('#155398','#1d2125'),
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0},
-                       'DarkBrown7' : {'BACKGROUND': '#2c2417',
-                                        'TEXT': '#baa379',
-                                        'INPUT': '#baa379',
-                                        'TEXT_INPUT': '#000000',
-                                        'SCROLL': '#392e1c',
-                                        'BUTTON': ('#000000', '#baa379'),
-                                        'PROGRESS': ('#baa379','#453923'),
-                                        'BORDER': 1,
-                                        'SLIDER_DEPTH': 1,
-                                        'PROGRESS_DEPTH': 0},
-                       'Python': {'BACKGROUND': '#3d7aab',
-                                        'TEXT': '#ffde56',
-                                        'INPUT': '#295273',
-                                        'TEXT_INPUT': '#ffde56',
-                                        'SCROLL': '#295273',
-                                        'BUTTON': ('#ffde56', '#295273'),
-                                        'PROGRESS': ('#ffde56','#295273'),
-                                        'BORDER': 1,
-                                        'SLIDER_DEPTH': 1,
-                                        'PROGRESS_DEPTH': 0}
-                    }
 
 
 def ListOfLookAndFeelValues():
@@ -15223,7 +14506,7 @@ def _theme_preview_window_swatches():
     # Begin the layout with a header
     layout = [[Text('Themes as color swatches', text_color='white', background_color='black', font='Default 25')],
               [Text('Tooltip and right click a color to get the value', text_color='white', background_color='black', font='Default 15')],
-              [Text('Left click a color to copy to clipboard (requires pyperclip)', text_color='white', background_color='black', font='Default 15')]]
+              [Text('Left click a color to copy to clipboard', text_color='white', background_color='black', font='Default 15')]]
     layout =[[Column(layout, element_justification='c', background_color='black')]]
     # Create the pain part, the rows of Text with color swatches
     for i, theme_name in enumerate(theme_list()):
@@ -16474,6 +15757,8 @@ def PopupGetFile(message, title=None, default_path='', default_extension='', sav
     :rtype: Union[str, None]
     """
 
+    if icon is None:
+        icon = Window._user_defined_icon or DEFAULT_BASE64_ICON
     if no_window:
         if not Window.hidden_master_root:
             # if first window being created, make a throwaway, hidden master root.  This stops one user
@@ -16500,21 +15785,27 @@ def PopupGetFile(message, title=None, default_path='', default_extension='', sav
             root.withdraw()
         except:
             pass
+
+        if root and icon is not None:
+            _set_icon_for_tkinter_window(root, icon=icon)
         # TODO - Macs will not like this code because of the filetypes being used.  Need another Darwin check.
         if save_as:
             filename = tk.filedialog.asksaveasfilename(filetypes=file_types,
                                                        initialdir=initial_folder,
                                                        initialfile=default_path,
+                                                       parent=root,
                                                        defaultextension=default_extension)  # show the 'get file' dialog box
         elif multiple_files:
             filename = tk.filedialog.askopenfilenames(filetypes=file_types,
                                                       initialdir=initial_folder,
                                                       initialfile=default_path,
+                                                      parent=root,
                                                       defaultextension=default_extension)  # show the 'get file' dialog box
         else:
             filename = tk.filedialog.askopenfilename(filetypes=file_types,
                                                      initialdir=initial_folder,
                                                      initialfile=default_path,
+                                                     parent=root,
                                                      defaultextension=default_extension)  # show the 'get files' dialog box
         root.destroy()
         if Window.NumOpenWindows == 1:
@@ -17048,6 +16339,7 @@ def _create_error_message():
            'The error originated from:\n' + error_message
 
 
+
 #   .d8888b.           888    888    d8b
 #  d88P  Y88b          888    888    Y8P
 #  Y88b.               888    888
@@ -17065,17 +16357,61 @@ def _create_error_message():
 # settings.  They are automatically saved to a JSON file. If no file/path is specified then a filename is
 # created from the source file filename.
 
-class _UserSettings:
-    settings = None             # type: _UserSettings
-    def __init__(self):
-        self.path = None
-        self.filename = None
+class UserSettings:
+    # A reserved settings object for use by the setting functions. It's a way for users
+    # to access the user settings without diarectly using the UserSettings class
+    _default_for_function_interface = None             # type: UserSettings
+
+    def __init__(self, filename=None, path=None, silent_on_error=False):
+        """
+        User Settings
+
+        :param filename: The name of the file to use. Can be a full path and filename or just filename
+        :type filename: (str or None)
+        :param path: The folder that the settings file will be stored in. Do not include the filename.
+        :type path: (str or None)
+        """
+        self.path = path
+        self.filename = filename
         self.full_filename = None
         self.dict = {}
-        # self.full_filename = os.path.join(self.location, self.filename)
+        self.default_value = None
+        self.silent_on_error = silent_on_error
+        if filename is not None or path is not None:
+            self.load(filename=filename, path=path)
 
 
-    def compute_filename(self, filename=None, path=None):
+    def __repr__(self):
+        """
+        Converts the settings dictionary into a string for easy display
+
+        :return: (str) the dictionary as a string
+        """
+        return str(self.dict)
+
+
+    def set_default_value(self, default):
+        """
+        Set the value that will be returned if a requested setting is not found
+
+        :param default: value to be returned if a setting is not found in the settings dictionary
+        :type default: Any
+        """
+        self.default_value = default
+
+
+
+    def _compute_filename(self, filename=None, path=None):
+        """
+        Creates the full filename given the path or the filename or both.
+
+        :param filename: The name of the file to use. Can be a full path and filename or just filename
+        :type filename: (str or None)
+        :param path: The folder that the settings file will be stored in. Do not include the filename.
+        :type path: (str or None)
+        :return: Tuple with (full filename, path, filename)
+        :rtype: Tuple[str, str, str]
+        """
         if filename is not None:
             dirname_from_filename = os.path.dirname(filename)  # see if a path was provided as part of filename
             if dirname_from_filename:
@@ -17101,32 +16437,137 @@ class _UserSettings:
         full_filename = os.path.join(path, filename)
         return (full_filename, path, filename)
 
+
     def set_location(self, filename=None, path=None):
-        cfull_filename, cpath, cfilename = self.compute_filename(filename=filename, path=path)
+        """
+        Sets the location of the settings file
+
+        :param filename: The name of the file to use. Can be a full path and filename or just filename
+        :type filename: (str or None)
+        :param path: The folder that the settings file will be stored in. Do not include the filename.
+        :type path: (str or None)
+        """
+        cfull_filename, cpath, cfilename = self._compute_filename(filename=filename, path=path)
 
         self.filename = cfilename
         self.path = cpath
         self.full_filename = cfull_filename
-        # print(f'set location... {self.full_filename}')
 
-    def save(self):
+
+    def get_filename(self, filename=None, path=None):
+        """
+        Sets the filename and path for your settings file.  Either paramter can be optional.
+
+        If you don't choose a path, one is provided for you that is OS specific
+        Windows path default = users/name/AppData/Local/PySimpleGUI/settings.
+
+        If you don't choose a filename, your application's filename + '.json' will be used.
+
+        Normally the filename and path are split in the user_settings calls. However for this call they
+        can be combined so that the filename contains both the path and filename.
+
+        :param filename: The name of the file to use. Can be a full path and filename or just filename
+        :type filename: (str or None)
+        :param path: The folder that the settings file will be stored in. Do not include the filename.
+        :type path: (str or None)
+        :return: The full pathname of the settings file that has both the path and filename combined.
+        :rtype: (str)
+        """
+        if filename is not None or path is not None or (filename is None and path is None):
+            self.set_location(filename=filename, path=path)
+            self.read()
+        return self.full_filename
+
+
+    def save(self, filename=None, path=None):
+        """
+        Saves the current settings dictionary.  If a filename or path is specified in the call, then it will override any
+        previously specitfied filename to create a new settings file.  The settings dictionary is then saved to the newly defined file.
+
+        :param filename: The fFilename to save to. Can specify a path or just the filename. If no filename specified, then the caller's filename will be used.
+        :type filename: (str or None)
+        :param path: The (optional) path to use to save the file.
+        :type path: (str or None)
+        :return: The full path and filename used to save the settings
+        :rtype: (str)
+        """
+        if filename is not None or path is not None:
+            self.set_location(filename=filename, path=path)
         try:
             if not os.path.exists(self.path):
                 os.makedirs(self.path)
             with open(self.full_filename, 'w') as f:
                 json.dump(self.dict, f)
         except Exception as e:
-            print('*** Error saving settings to file:***\n', self.full_filename, e)
-            print(_create_error_message())
+            if not self.silent_on_error:
+                print('*** Error saving settings to file:***\n', self.full_filename, e)
+                print(_create_error_message())
+        return self.full_filename
 
-    def delete_file(self):
+
+    def load(self, filename=None, path=None):
+        """
+        Specifies the path and filename to use for the settings and reads the contents of the file.
+        The filename can be a full filename including a path, or the path can be specified separately.
+        If  no filename is specified, then the caller's filename will be used with the extension ".json"
+
+        :param filename: Filename to load settings from (and save to in the future)
+        :type filename: (str or None)
+        :param path: Path to the file. Defaults to a specific folder depending on the operating system
+        :type path: (str or None)
+        :return: The settings dictionary (i.e. all settings)
+        :rtype: (dict)
+        """
+        if filename is not None or path is not None or self.full_filename is None:
+            self.set_location(filename, path)
+        self.read()
+        return self.dict
+
+
+    def delete_file(self, filename=None, path=None):
+        """
+        Deltes the filename and path for your settings file.  Either paramter can be optional.
+        If you don't choose a path, one is provided for you that is OS specific
+        Windows path default = users/name/AppData/Local/PySimpleGUI/settings.
+        If you don't choose a filename, your application's filename + '.json' will be used
+        Also sets your current dictionary to a blank one.
+
+        :param filename: The name of the file to use. Can be a full path and filename or just filename
+        :type filename: (str or None)
+        :param path: The folder that the settings file will be stored in. Do not include the filename.
+        :type path: (str or None)
+        """
+        if filename is not None or path is not None or (filename is None and path is None):
+            self.set_location(filename=filename, path=path)
         try:
             os.remove(self.full_filename)
         except Exception as e:
-            print('*** User settings delete filename warning ***\n', e)
-            print(_create_error_message())
+            if not self.silent_on_error:
+                print('*** User settings delete filename warning ***\n', e)
+                print(_create_error_message())
+        self.dict = {}
+
+
+    def write_new_dictionary(self, settings_dict):
+        """
+        Writes a specified dictionary to the currently defined settings filename.
+
+        :param settings_dict: The dictionary to be written to the currently defined settings file
+        :type settings_dict: (dict)
+        """
+        if self.full_filename is None:
+            self.set_location()
+        self.dict = settings_dict
+        self.save()
+
 
     def read(self):
+        """
+        Reads settings file and returns the dictionary.
+
+        :return: settings dictionary
+        :rtype: (dict)
+        """
         if self.full_filename is None:
             return {}
         try:
@@ -17134,20 +16575,160 @@ class _UserSettings:
                 with open(self.full_filename, 'r') as f:
                     self.dict = json.load(f)
         except Exception as e:
-            print('*** Error reading settings from file: ***\n', self.full_filename, e)
-            print(_create_error_message())
+            if not self.silent_on_error:
+                print('*** Error reading settings from file: ***\n', self.full_filename, e)
+                print(_create_error_message())
 
         return self.dict
 
+
     def exists(self, filename=None, path=None):
-        cfull_filename, cpath, cfilename = self.compute_filename(filename=filename, path=path)
+        """
+        Check if a particular settings file exists.  Returns True if file exists
+
+        :param filename: The name of the file to use. Can be a full path and filename or just filename
+        :type filename: (str or None)
+        :param path: The folder that the settings file will be stored in. Do not include the filename.
+        :type path: (str or None)
+        """
+        cfull_filename, cpath, cfilename = self._compute_filename(filename=filename, path=path)
         if os.path.exists(cfull_filename):
             return True
         return False
 
 
-# Create a singleton for the settings information
-_UserSettings.settings = _UserSettings()
+    def delete_entry(self, key):
+        """
+        Deletes an individual entry.  If no filename has been specified up to this point,
+        then a default filename will be used.
+        After value has been deleted, the settings file is written to disk.
+
+        :param key:  Setting to be deleted. Can be any valid dictionary key type (i.e. must be hashable)
+        :type key: (Any)
+        """
+        if self.full_filename is None:
+            self.set_location()
+        self.read()
+        if key in self.dict:
+            del self.dict[key]
+            self.save()
+        else:
+            if not self.silent_on_error:
+                print('*** Warning - key ', key, ' not found in settings ***\n')
+                print(_create_error_message())
+
+
+    def set(self, key, value):
+        """
+        Sets an individual setting to the specified value.  If no filename has been specified up to this point,
+        then a default filename will be used.
+        After value has been modified, the settings file is written to disk.
+
+        :param key:  Setting to be saved. Can be any valid dictionary key type
+        :type key: (Any)
+        :param value: Value to save as the setting's value. Can be anything
+        :type value:  (Any)
+        """
+        if self.full_filename is None:
+            self.set_location()
+        self.read()
+        self.dict[key] = value
+        self.save()
+
+
+    def get(self, key, default=None):
+        """
+        Returns the value of a specified setting.  If the setting is not found in the settings dictionary, then
+        the user specified default value will be returned.  It no default is specified and nothing is found, then
+        the "default value" is returned.  This default can be specified in this call, or previously defined
+        by calling set_default. If nothing specified now or previously, then None is returned as default.
+
+        :param key: Key used to lookup the setting in the settings dictionary
+        :type key: (Any)
+        :param default: Value to use should the key not be found in the dictionary
+        :type default: (Any)
+        :return: Value of specified settings
+        :rtype: (Any)
+        """
+        if self.default_value is not None:
+            default = self.default_value
+
+        if self.full_filename is None:
+            self.set_location()
+            self.read()
+        value = self.dict.get(key, default)
+        # Previously was saving creating an entry and saving the dictionary if the
+        # key was not found.  I don't understand why it was originally coded this way.
+        # Hopefully nothing is going to break removing this code.
+        # if key not in self.dict:
+        #     self.set(key, value)
+        #     self.save()
+        return value
+
+
+    def get_dict(self):
+        """
+        Returns the current settings dictionary.  If you've not setup the filename for the
+        settings, a default one will be used and then read.
+
+        Note that you can display the dictionary in text format by printing the object itself.
+
+        :return: The current settings dictionary
+        :rtype: Dict
+        """
+        if self.full_filename is None:
+            self.set_location()
+            self.read()
+            self.save()
+        return self.dict
+
+
+    def __setitem__(self, item, value):
+        """
+        Enables setting a setting by using [ ] notation like a dictionary.
+        Your code will have this kind of design pattern:
+        settings = sg.UserSettings()
+        settings[item] = value
+
+        :param item: The key for the setting to change. Needs to be a hashable type. Basically anything but a list
+        :type item: Any
+        :param value: The value to set the setting to
+        :type value: Any
+        """
+
+        self.set(item, value)
+
+
+    def __getitem__(self, item):
+        """
+        Enables accessing a setting using [ ] notation like a dictionary.
+        If the entry does not exist, then the default value will be returned.  This default
+        value is None unless user sets by calling UserSettings.set_default_value(default_value)
+
+        :param item: The key for the setting to change. Needs to be a hashable type. Basically anything but a list
+        :type item: Any
+        :return: The setting value
+        :rtype: Any
+        """
+        return self.get(item, self.default_value)
+
+
+
+    def __delitem__(self, item):
+        """
+        Delete an individual user setting.  This is the same as calling delete_entry.  The syntax
+        for deleting the item using this manner is:
+            del settings['entry']
+        :param item: The key for the setting to delete
+        :type item: Any
+        """
+        self.delete_entry(key=item)
+
+
+
+# Create a singleton for the settings information so that the settings functions can be used
+if UserSettings._default_for_function_interface is None:
+    UserSettings._default_for_function_interface = UserSettings()
 
 
 def user_settings_filename(filename=None, path=None):
@@ -17164,16 +16745,13 @@ def user_settings_filename(filename=None, path=None):
 
     :param filename: The name of the file to use. Can be a full path and filename or just filename
     :type filename: (str)
-    :param path: The folder that the settings file will be stored in. Do no include the filename.
+    :param path: The folder that the settings file will be stored in. Do not include the filename.
     :type path: (str)
     :return: The full pathname of the settings file that has both the path and filename combined.
     :rtype: (str)
     """
-    settings = _UserSettings.settings
-    if filename is not None or path is not None or (filename is None and path is None):
-        settings.set_location(filename=filename, path=path)
-        settings.read()
-    return settings.full_filename
+    settings = UserSettings._default_for_function_interface
+    return settings.get_filename(filename, path)
 
 
 def user_settings_delete_filename(filename=None, path=None):
@@ -17186,14 +16764,11 @@ def user_settings_delete_filename(filename=None, path=None):
 
     :param filename: The name of the file to use. Can be a full path and filename or just filename
     :type filename: (str)
-    :param path: The folder that the settings file will be stored in. Do no include the filename.
+    :param path: The folder that the settings file will be stored in. Do not include the filename.
     :type path: (str)
     """
-    settings = _UserSettings.settings
-    if filename is not None or path is not None or (filename is None and path is None):
-        settings.set_location(filename, path)
-        settings.delete_file()
-        settings.dict = {}
+    settings = UserSettings._default_for_function_interface
+    settings.delete_file(filename, path)
 
 
 def user_settings_set_entry(key, value):
@@ -17207,12 +16782,8 @@ def user_settings_set_entry(key, value):
     :param value: Value to save as the setting's value. Can be anything
     :type value:  (Any)
     """
-    settings = _UserSettings.settings
-    if settings.full_filename is None:
-        settings.set_location()
-    settings.read()
-    settings.dict[key] = value
-    settings.save()
+    settings = UserSettings._default_for_function_interface
+    settings.set(key, value)
 
 
 def user_settings_delete_entry(key):
@@ -17224,16 +16795,9 @@ def user_settings_delete_entry(key):
     :param key:  Setting to be saved. Can be any valid dictionary key type (hashable)
     :type key: (Any)
     """
-    settings = _UserSettings.settings
-    if settings.full_filename is None:
-        settings.set_location()
-    settings.read()
-    if key in settings.dict:
-        del settings.dict[key]
-        settings.save()
-    else:
-        print('*** Warning - key ', key, ' not found in settings ***\n')
-        print(_create_error_message())
+    settings = UserSettings._default_for_function_interface
+    settings.delete_entry(key)
+
 
 
 def user_settings_get_entry(key, default=None):
@@ -17251,15 +16815,8 @@ def user_settings_get_entry(key, default=None):
     :return: Value of specified settings
     :rtype: (Any)
     """
-    settings = _UserSettings.settings
-    if settings.full_filename is None:
-        settings.set_location()
-        settings.read()
-    value = settings.dict.get(key, default)
-    if key not in settings.dict:
-        user_settings_set_entry(key, value)
-        settings.save()
-    return value
+    settings = UserSettings._default_for_function_interface
+    return settings.get(key, default)
 
 
 def user_settings_save(filename=None, path=None):
@@ -17274,11 +16831,8 @@ def user_settings_save(filename=None, path=None):
     :return: The full path and filename used to save the settings
     :rtype: (str)
     """
-    settings = _UserSettings.settings
-    if filename is not None or path is not None:
-        settings.set_location(filename=filename, path=path)
-    settings.save()
-    return settings.full_filename
+    settings = UserSettings._default_for_function_interface
+    return settings.save(filename, path)
 
 
 def user_settings_load(filename=None, path=None):
@@ -17294,11 +16848,8 @@ def user_settings_load(filename=None, path=None):
     :return: The settings dictionary (i.e. all settings)
     :rtype: (dict)
     """
-    settings = _UserSettings.settings
-    if filename is not None or path is not None or settings.full_filename is None:
-        settings.set_location(filename, path)
-    settings.read()
-    return settings.dict
+    settings = UserSettings._default_for_function_interface
+    return settings.load(filename, path)
 
 
 def user_settings_file_exists(filename=None, path=None):
@@ -17314,8 +16865,9 @@ def user_settings_file_exists(filename=None, path=None):
     :return: True if the file exists
     :rtype: (bool)
     """
-    settings = _UserSettings.settings
+    settings = UserSettings._default_for_function_interface
     return settings.exists(filename=filename, path=path)
+
 
 
 def user_settings_write_new_dictionary(settings_dict):
@@ -17325,11 +16877,19 @@ def user_settings_write_new_dictionary(settings_dict):
     :param settings_dict: The dictionary to be written to the currently defined settings file
     :type settings_dict: (dict)
     """
-    settings = _UserSettings.settings
-    if settings.full_filename is None:
-        settings.set_location()
-    settings.dict = settings_dict
-    settings.save()
+    settings = UserSettings._default_for_function_interface
+    settings.write_new_dictionary(settings_dict)
+
+
+def user_settings_silent_on_error(silent_on_error=False):
+    """
+    Used to control the display of error messages.  By default, error messages are displayed to stdout.
+
+    :param silent_on_error: If True then all error messages are silenced (not displayed on the console)
+    :type silent_on_error: (bool)
+    """
+    settings = UserSettings._default_for_function_interface
+    settings.silent_on_error = silent_on_error
 
 
 def user_settings():
@@ -17340,12 +16900,8 @@ def user_settings():
     :return: The current settings dictionary
     :rtype: (dict)
     """
-    settings = _UserSettings.settings
-    if settings.full_filename is None:
-        settings.set_location()
-        settings.read()
-        settings.save()
-    return _UserSettings.settings.dict
+    settings = UserSettings._default_for_function_interface
+    return settings.get_dict()
 
 
 #####################################################################################################
@@ -17443,7 +16999,7 @@ class _Debugger():
                   [Button('', image_data=red_x, key='_EXIT_', button_color=None), ]]
 
         # ------------------------------- Create main window -------------------------------
-        window = Window("PySimpleGUI Debugger", layout, icon=PSGDebugLogo, margins=(0, 0), location=location)
+        window = Window("PySimpleGUI Debugger", layout, icon=PSGDebugLogo, margins=(0, 0), location=location, keep_on_top=True)
 
         Window._read_call_from_debugger = True
         window.finalize()
@@ -18179,7 +17735,43 @@ def _upgrade_gui():
     else:
         popup_quick_message('Cancelled upgrade\nNothing overwritten', background_color='red', text_color='white', keep_on_top=True, non_blocking=False)
 
+
+def main_get_debug_data(suppress_popup=False):
+    """
+    Collect up and display the data needed to file GitHub issues.
+    This function will place the information on the clipboard.
+    You MUST paste the information from the clipboard prior to existing your application.
+    :param suppress_popup: If True no popup window will be shown. The string will be only returned, not displayed
+    :type suppress_popup: (bool)
+    :returns: String containing the information to place into the GitHub Issue
+    :rtype: (str)
+    """
+    message = \
+"""Python version: {}
+port: tkinter
+tkinter version: {}
+PySimpleGUI version: {}
+PySimpleGUI filename: {}""".format(sys.version, tclversion_detailed, ver, __file__)
+
+    # create a temp window so that the clipboard can be set
+    root = tk.Tk()
+    root.withdraw()
+    root.clipboard_clear()
+    root.clipboard_append(message)
+    root.update_idletasks()
+    root.destroy()
+
+    if not suppress_popup:
+        popup_scrolled('*** With this window still open, paste clipboard into your GitHub Issue***\n',
+                   message, title='Select and copy this info to your GitHub Issue', keep_on_top=True, size=(100,10))
+
+    return message
+
 def main_sdk_help():
+    """
+    Display a window that will display the docstrings for each PySimpleGUI Element and the Window object
+
+    """
 
     element_classes = Element.__subclasses__()
     element_names = {element.__name__: element for element in element_classes}
@@ -18233,24 +17825,26 @@ def _create_main_window():
     # theme('dark red')
     # theme('Light Green 6')
     # theme('Dark Grey 8')
-    ver = version.split('\n')[0]
 
     tkversion = tkinter.TkVersion
     tclversion = tkinter.TclVersion
     tclversion_detailed = tkinter.Tcl().eval('info patchlevel')
 
     print('Starting up PySimpleGUI Diagnostic & Help System')
+    print('PySimpleGUI long version = ', version)
     print('PySimpleGUI Version ', ver, '\ntcl ver = {}'.format(tclversion),
           'tkinter version = {}'.format(tkversion), '\nPython Version {}'.format(sys.version))
     print('tcl detailed version = {}'.format(tclversion_detailed))
     print('PySimpleGUI.py location', __file__)
     # ------ Menu Definition ------ #
     menu_def = [['&File', ['!&Open', '&Save::savekey', '---', '&Properties', 'E&xit']],
-                ['!&Edit', ['!&Paste', ['Special', 'Normal', ], 'Undo'], ],
+                ['&Edit', ['&Paste', ['Special', 'Normal', '!Disabled' ], 'Undo'], ],
                 ['&Debugger', ['Popout', 'Launch Debugger']],
+                ['!&Disabled', ['Popout', 'Launch Debugger']],
                 ['&Toolbar', ['Command &1', 'Command &2', 'Command &3', 'Command &4']],
                 ['&Help', '&About...'], ]
 
+    button_menu_def = ['unused', ['&Paste', ['Special', 'Normal', '!Disabled'], 'Undo', 'Exit'], ]
     treedata = TreeData()
 
     treedata.Insert("", '_A_', 'Tree Item 1', [1, 2, 3], )
@@ -18349,10 +17943,13 @@ I hope you are enjoying using PySimpleGUI whether you sponsor the product or not
          Button('Upgrade PySimpleGUI from GitHub', button_color='white on red', key='-INSTALL-'),
          Button('Exit', tooltip='Exit button')],
         [ B(image_data=ICON_BUY_ME_A_COFFEE, key='-COFFEE-'),
-          B('Themes'), B('Theme Swatches'), B('Switch Themes'),B('SDK Reference')]
+          B('Themes'), B('Theme Swatches'), B('Switch Themes'),B('SDK Reference'), B('Info for GitHub'),
+          ButtonMenu('ButtonMenu', button_menu_def, key='-BMENU-')
+          ]
+
     ]
 
-    layout = [[Column([[Menu(menu_def, key='_MENU_', font='Courier 15')]] + layout1), Column([[ProgressBar(max_value=800, size=(30, 25), orientation='v', key='+PROGRESS+')]])]]
+    layout = [[Column([[Menu(menu_def, key='_MENU_', font='Courier 15', background_color='red', text_color='white', disabled_text_color='yellow')]] + layout1), Column([[ProgressBar(max_value=800, size=(30, 25), orientation='v', key='+PROGRESS+')]])]]
     window = Window('PySimpleGUI Main Test Harness', layout,
                     # font=('Helvetica', 18),
                     # background_color='black',
@@ -18387,7 +17984,7 @@ def main():
             print(event, values)
             # Print(event, text_color='white', background_color='red', end='')
             # Print(values)
-        if event == WIN_CLOSED or event == 'Exit':
+        if event == WIN_CLOSED or event == 'Exit' or (event == '-BMENU-' and values['-BMENU-'] == 'Exit'):
             break
         if i < 800:
             graph_elem.DrawLine((i, 0), (i, random.randint(0, 300)), width=1, color='#{:06x}'.format(random.randint(0, 0xffffff)))
@@ -18408,7 +18005,7 @@ def main():
         elif event == 'Launch Debugger':
             show_debugger_window()
         elif event == 'About...':
-            popup('About this program...', 'You are looking at the test harness for the PySimpleGUI program', keep_on_top=True, image=DEFAULT_BASE64_ICON)
+            popup('About this program...', 'You are looking at the test harness for the PySimpleGUI program', version,keep_on_top=True, image=DEFAULT_BASE64_ICON)
         elif event.startswith('See'):
             window.set_transparent_color(theme_background_color())
         elif event == '-INSTALL-':
@@ -18450,7 +18047,8 @@ def main():
                 popup_non_blocking('Non-blocking', 'The background window should still be running', keep_on_top=True)
             elif event == 'P AutoClose':
                 popup_auto_close('Will autoclose in 3 seconds', auto_close_duration=3 ,keep_on_top=True)
-
+        elif event == 'Info for GitHub':
+            main_get_debug_data()
 
 
         i += 1
@@ -18462,7 +18060,6 @@ def main():
 
 change_look_and_feel = ChangeLookAndFeel
 convert_args_to_single_string = ConvertArgsToSingleString
-convert_flex_to_tk = ConvertFlexToTK
 easy_print = EasyPrint
 easy_print_close = EasyPrintClose
 fill_form_with_values = FillFormWithValues

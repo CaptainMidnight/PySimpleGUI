@@ -1,14 +1,20 @@
 #!/usr/bin/python3
-version = __version__ = "0.35.0.12 Unreleased\nMassive update of docstrings (thanks nngogol), default for slider tick interval set automatically now, margins added to Window but not yet hooked up, VSeparator added (spelling error), added Radio.reset_group and removed clearing all when one of them is cleared (recent change), added default key for one_line_progress_meter, auto-add keys to tables & trees, InputText element gets new disabled-readonly foreground and background color settings and also a readonly parameter, InputText gets border_width parameter, fixed up some docstrings, popup gets new image and any_key_closes parms, input type popups also get image parameter, error checks for trying to manipulate a window prior to finalize, added a dummy Element.expand method, added theme_add_new, added Window.set_title"
+from PySimpleGUI import Column
+
+version = __version__ = "0.35.0.18 Unreleased\nMassive update of docstrings (thanks nngogol), default for slider tick interval set automatically now, margins added to Window but not yet hooked up, VSeparator added (spelling error), added Radio.reset_group and removed clearing all when one of them is cleared (recent change), added default key for one_line_progress_meter, auto-add keys to tables & trees, InputText element gets new disabled-readonly foreground and background color settings and also a readonly parameter, InputText gets border_width parameter, fixed up some docstrings, popup gets new image and any_key_closes parms, input type popups also get image parameter, error checks for trying to manipulate a window prior to finalize, added a dummy Element.expand method, added theme_add_new, added Window.set_title, updated to the latest themes from tktiner port, big styles update (thanks nngogol!), more Styles work, changed popup text layout to match tkinter port, fixed vertical alignment in row, added margin to some elements, renamed styles related variables, window margin support but be careful"
+
+__version__ = version.split()[0]    # For PEP 396 and PEP 345
+
+# The shortened version of version
+try:
+    ver = version.split(' ')[0]
+except:
+    ver = ''
+
 
 port = 'PySimpleGUIQt'
 
-import sys
-import datetime
-import textwrap
-import pickle
-import random
-import warnings
+import sys, datetime, textwrap, pickle, random, warnings, time
 try:        # Because Raspberry Pi is still on 3.4....it's not critical if this module isn't imported on the Pi
     from typing import List, Any, Union, Tuple, Dict    # because this code has to run on 2.7 can't use real type hints.  Must do typing only in comments
 except:
@@ -21,13 +27,16 @@ except:
 #          #          #  #  #    #  #####   #       #       #     #  #     #   #   #   # #    #
 #          #    #     #  #  #    #  #       #       #       #     #  #     #   #   #    #     #
 #          #     #####   #  #    #  #       ######  ######   #####    #####   ###   #### #    #
+#
+# Copyright 2020 PySimpleGUI.org
+
 
 from PySide2.QtWidgets import QApplication, QLabel, QWidget, QLineEdit, QComboBox, QFormLayout, QVBoxLayout, QHBoxLayout, QListWidget, QDial, QTableWidget
 from PySide2.QtWidgets import QSlider, QCheckBox, QRadioButton, QSpinBox, QPushButton, QTextEdit, QMainWindow, QDialog, QAbstractItemView
 from PySide2.QtWidgets import QSpacerItem, QFrame, QGroupBox, QTextBrowser, QPlainTextEdit, QButtonGroup, QFileDialog, QTableWidget, QTabWidget, QTabBar, QTreeWidget, QTreeWidgetItem, QLayout, QTreeWidgetItemIterator, QProgressBar
 from PySide2.QtWidgets import QTableWidgetItem, QGraphicsView, QGraphicsScene, QGraphicsItemGroup, QMenu, QMenuBar, QAction, QSystemTrayIcon, QColorDialog
 from PySide2.QtGui import QPainter, QPixmap, QPen, QColor, QBrush, QPainterPath, QFont, QImage, QIcon
-from PySide2.QtCore import Qt,QProcess, QEvent, QSize
+from PySide2.QtCore import Qt, QEvent, QSize
 import PySide2.QtGui as QtGui
 import PySide2.QtCore as QtCore
 import PySide2.QtWidgets as QtWidgets
@@ -35,13 +44,6 @@ import PySide2.QtWidgets as QtWidgets
 using_pyqt5 = False
 
 
-
-"""
-    The QT version if PySimpleGUI.
-    Still being developed.  Very limited features.  Been in development for less than 2 days so don't expect much!!
-    
-    So far can interact with the basic Widgets and get button clicks back.  Can't yet read which button caused the event.
-"""
 
 DEFAULT_BASE64_ICON = b'R0lGODlhIQAgAPcAAAAAADBpmDBqmTFqmjJrmzJsnDNtnTRrmTZtmzZumzRtnTdunDRunTRunjVvnzdwnzhwnjlxnzVwoDZxoTdyojhzozl0ozh0pDp1pjp2pjp2pzx0oj12pD52pTt3qD54pjt4qDx4qDx5qTx5qj16qj57qz57rD58rT98rkB4pkJ7q0J9rEB9rkF+rkB+r0d9qkZ/rEl7o0h8p0x9pk5/p0l+qUB+sEyBrE2Crk2Er0KAsUKAskSCtEeEtUWEtkaGuEiHuEiHukiIu0qKu0mJvEmKvEqLvk2Nv1GErVGFr1SFrVGHslaHsFCItFSIs1COvlaPvFiJsVyRuWCNsWSPsWeQs2SQtGaRtW+Wt2qVuGmZv3GYuHSdv3ievXyfvV2XxGWZwmScx2mfyXafwHikyP7TPP/UO//UPP/UPf/UPv7UP//VQP/WQP/WQf/WQv/XQ//WRP7XSf/XSv/YRf/YRv/YR//YSP/YSf/YSv/ZS//aSv/aS/7YTv/aTP/aTf/bTv/bT//cT/7aUf/cUP/cUf/cUv/cU//dVP/dVf7dVv/eVv/eV//eWP/eWf/fWv/fW/7cX/7cYf7cZP7eZf7dav7eb//gW//gXP/gXf/gXv/gX//gYP/hYf/hYv/iYf/iYv7iZP7iZf/iZv/kZv7iaP/kaP/ka//ma//lbP/lbv/mbP/mbv7hdP7lcP/ncP/nc//ndv7gef7gev7iff7ke/7kfv7lf//ocf/ocv/odP/odv/peP/pe//ofIClw4Ory4GszoSszIqqxI+vyoSv0JGvx5OxyZSxyZSzzJi0y5m2zpC10pi715++16C6z6a/05/A2qHC3aXB2K3I3bLH2brP4P7jgv7jh/7mgf7lhP7mhf7liv/qgP7qh/7qiP7rjf7sjP7nkv7nlv7nmP7pkP7qkP7rkv7rlv7slP7sl/7qmv7rnv7snv7sn/7un/7sqv7vq/7vrf7wpv7wqf7wrv7wsv7wtv7ytv7zvP7zv8LU48LV5c3a5f70wP7z0AAAACH5BAEAAP8ALAAAAAAhACAAAAj/AP8JHEiwoMGDCA1uoYIF4bhK1vwlPOjlQICLApwVpFTGzBk1siYSrCLgoskFyQZKMsOypRyR/GKYnBkgQbF/s8603KnmWkIaNIMaw6lzZ8tYB2cIWMo0KIJj/7YV9XgGDRo14gpOIUBggNevXpkKGCDsXySradSoZcMmDsFnDxpEKEC3bl2uXCFQ+7emjV83bt7AgTNroJINAq0wWBxBgYHHdgt0+cdnMJw5c+jQqYNnoARkAx04kPEvS4PTqBswuPIPUp06duzcuYMHT55wAjkwEahsQgqBNSQIHy582D9BePTs2dOnjx8/f1gJ9GXhRpTqApFQoDChu3cOAps///9D/g+gQvYGjrlw4cU/fUnYX6hAn34HgZMABQo0iJB/Qoe8UxAXOQiEg3wIXvCBQLUU4mAhh0R4SCLqJOSEBhhqkAEGHIYgUDaGICIiIoossogj6yBUTQ4htNgiCCB4oIJAtJTIyI2MOOLIIxMtQQIJIwQZpAgwCKRNI43o6Igll1ySSTsI7dOECSaUYOWVKwhkiyVMYuJlJpp0IpA6oJRTkBQopHnCmmu2IBA2mmQi5yZ0fgJKPP+0IwoooZwzkDQ2uCCoCywUyoIW/5DDyaKefOLoJ6LU8w87pJgDTzqmDNSMDpzqYMOnn/7yTyiglBqKKKOMUopA7JgCy0DdeMEjUDM71GqrrcH8QwqqqpbiayqToqJKLwN5g45A0/TAw7LL2krGP634aoopp5yiiiqrZLuKK+jg444uBIHhw7g+MMsDFP/k4wq22rririu4xItLLriAUxAQ5ObrwzL/0PPKu7fIK3C8uxz0w8EIIwzMP/cM7HC88hxEzBBCBGGxxT8AwQzDujws7zcJQVMEEUKUbPITAt1D78OSivSFEUXEXATKA+HTscC80CPSQNGEccQRYhjUDzfxcjPPzkgnLVBAADs='
 
@@ -53,7 +55,6 @@ g_time_start = 0
 g_time_end = 0
 g_time_delta = 0
 
-import time
 
 
 def TimerStart():
@@ -91,7 +92,7 @@ def TimerStop():
 DEFAULT_WINDOW_ICON = DEFAULT_BASE64_ICON
 DEFAULT_ELEMENT_SIZE = (250, 22)  # In PIXELS
 DEFAULT_BUTTON_ELEMENT_SIZE = (80, 25 )  # In PIXELS
-DEFAULT_MARGINS = (10, 5)  # Margins for each LEFT/RIGHT margin is first term
+DEFAULT_MARGINS = (0,0)   # For Qt, use a Column element with padding to get same effect as tkinter port
 DEFAULT_ELEMENT_PADDING = (4, 2)  # Padding between elements (row, col) in pixels
 # DEFAULT_ELEMENT_PADDING = (0, 0)  # Padding between elements (row, col) in pixels
 DEFAULT_PIXELS_TO_CHARS_SCALING = (10,35)      # 1 character represents x by y pixels
@@ -129,6 +130,7 @@ OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR = ('white', BLUES[0])  # Colors should never b
 
 
 CURRENT_LOOK_AND_FEEL = 'DarkBlue3'
+# CURRENT_LOOK_AND_FEEL = 'Dark Red'
 
 DEFAULT_ERROR_BUTTON_COLOR = ("#FFFFFF", "#FF0000")
 DEFAULT_BACKGROUND_COLOR = None
@@ -158,7 +160,7 @@ RELIEF_TICK_POSITION_BELOW = 'below'
 RELIEF_TICK_POSITION_LEFT = 'left'
 RELIEF_TICK_POSITION_RIGHT = 'right'
 
-
+DEFAULT_PROGRESS_BAR_COMPUTE = ('#000000', '#000000') # Means that the progress bar colors should be computed from other colors
 DEFAULT_PROGRESS_BAR_COLOR = (GREENS[0], '#D0D0D0')  # a nice green progress bar
 DEFAULT_PROGRESS_BAR_COLOR_OFFICIAL = (GREENS[0], '#D0D0D0')  # a nice green progress bar
 DEFAULT_PROGRESS_BAR_SIZE = (200, 20)  # Size of Progress Bar (characters for length, pixels for width)
@@ -306,6 +308,8 @@ POPUP_BUTTONS_OK_CANCEL = 4
 POPUP_BUTTONS_OK = 0
 POPUP_BUTTONS_NO_BUTTONS = 5
 
+# def apply_new_font(css_dict, font_string):
+#     return css_dict.update({k.strip().replace('_', '-') : v.strip() for k,v in font_string.replace('\n', '').split(';')})
 
 # ---------------------------------------------------------------------- #
 # Cascading structure.... Objects get larger                             #
@@ -383,6 +387,9 @@ class Element():
         self.Visible = visible
         self.metadata = metadata                # type: Any
         self.row_frame = None                   # type: QHBoxLayout
+        self.qt_styles = []                     # type: List[QtStyle]
+        self.Widget = None                      # type: QWidget
+
 
 
     def _FindReturnKeyBoundButton(self, form):
@@ -437,23 +444,49 @@ class Element():
     def Update(self, widget, background_color=None, text_color=None, font=None, visible=None):
         if not self._widget_was_created():
             return
-        style = str(widget.styleSheet())
-        add_brace = False
-        if len(style) != 0 and style[-1] == '}':
-            style = style[:-1]
-            add_brace = True
-        if font is not None:
-            style += create_style_from_font(font)
+
+        a_style = self.qt_styles[0]
+        # print(f'a_style = {a_style}')
+        if font is not None:  #= apply_new_font(css_props_dict, create_style_from_font(font))
+            a_style['font'] = create_style_from_font(font)
         if text_color is not None:
-            style += ' color: %s;' % text_color
+            a_style['color'] = text_color
             self.TextColor = text_color
         if background_color is not None:
-            style += 'background-color: %s;' % background_color
-        if add_brace:
-            style += '}'
-        widget.setStyleSheet(style)
+            a_style['background-color'] = background_color
+            self.BackgroundColor = background_color
+
+        # print(f'a_style = {a_style}')
+        widget.setStyleSheet(a_style.build_css_string())
         set_widget_visiblity(widget, visible)
 
+
+    def set_stylesheet(self, stylesheet):
+        """
+        Sets the stylesheet for a Qt Widget
+        :param stylesheet: Stylesheet (string) to set stylesheet to
+        :type stylesheet: (str)
+        """
+        try:
+            self.Widget.setStyleSheet(stylesheet)
+        except Exception as e:
+            print('** Error Setting Stylesheet **', e)
+
+    def get_stylesheet(self):
+        """
+        Returns the stylesheet for element's associated Qt Widget
+        :return: stylesheet
+        :rtype: (str)
+        """
+        stylesheet = ''
+        try:
+            stylesheet = self.Widget.styleSheet()
+        except Exception as e:
+            print('** Error Setting Stylesheet **', e)
+
+        return stylesheet
+
+    update = Update
 
     # ---------------------------------- DUMMY METHODS - They don't do anything! ----------------------------------
 
@@ -554,6 +587,7 @@ class InputText(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.DefaultText = default_text
         self.PasswordCharacter = password_char
         bg = background_color if background_color is not None else DEFAULT_INPUT_ELEMENTS_COLOR
@@ -701,6 +735,7 @@ class Combo(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Values = values
         self.DefaultValue = default_value
         self.ChangeSubmits = change_submits or enable_events
@@ -790,6 +825,7 @@ class OptionMenu(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Values = values
         self.DefaultValue = default_value
         self.TKOptionMenu = None
@@ -855,6 +891,7 @@ class Listbox(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Values = values
         self.DefaultValues = default_values
         self.TKListbox = None
@@ -937,6 +974,9 @@ class Listbox(Element):
     update = Update
 
 
+LBox = Listbox
+LB = Listbox
+
 # ---------------------------------------------------------------------- #
 #                           Radio                                        #
 # ---------------------------------------------------------------------- #
@@ -982,6 +1022,7 @@ class Radio(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.InitialState = default
         self.Text = text
         self.GroupID = group_id
@@ -1026,6 +1067,9 @@ class Radio(Element):
 
     update = Update
 
+R = Radio
+Rad = Radio
+
 # ---------------------------------------------------------------------- #
 #                           Checkbox                                     #
 # ---------------------------------------------------------------------- #
@@ -1068,6 +1112,7 @@ class Checkbox(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Text = text
         self.InitialState = default
         self.Value = None
@@ -1153,6 +1198,7 @@ class Spin(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Values = values
         self.DefaultValue = initial_value
         self.ChangeSubmits = change_submits or enable_events
@@ -1267,6 +1313,7 @@ class Multiline(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.DefaultText = default_text
         self.EnterSubmits = enter_submits
         bg = background_color if background_color else DEFAULT_INPUT_ELEMENTS_COLOR
@@ -1448,6 +1495,7 @@ class MultilineOutput(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.DefaultText = default_text
         self.EnterSubmits = enter_submits
         bg = background_color if background_color else DEFAULT_INPUT_ELEMENTS_COLOR
@@ -1553,6 +1601,7 @@ class Text(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.DisplayText = str(text)
         self.TextColor = text_color if text_color else DEFAULT_TEXT_COLOR
         self.Justification = justification or 'left'
@@ -1627,6 +1676,7 @@ class Output(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self._TKOut = None
         bg = background_color if background_color else DEFAULT_INPUT_ELEMENTS_COLOR
         fg = text_color if text_color is not None else DEFAULT_INPUT_TEXT_COLOR
@@ -1733,6 +1783,7 @@ class Button(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.AutoSizeButton = auto_size_button
         self.BType = button_type
         self.FileTypes = file_types
@@ -2006,6 +2057,7 @@ class ButtonMenu(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.MenuDefinition = menu_def
         self.AutoSizeButton = auto_size_button
         self.ButtonText = button_text
@@ -2095,6 +2147,7 @@ class ProgressBar(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.MaxValue = max_value
         self.TKProgressBar = None
         self.Cancelled = False
@@ -2167,6 +2220,7 @@ class Image(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Filename = filename
         self.Data = data
         self.DataBase64 = data_base64
@@ -2239,6 +2293,7 @@ class Canvas(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.BackgroundColor = background_color if background_color is not None else DEFAULT_BACKGROUND_COLOR
         self._TKCanvas = canvas
 
@@ -2287,6 +2342,7 @@ class Graph(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.CanvasSize = canvas_size
         self.BottomLeft = graph_bottom_left
         self.TopRight = graph_top_right
@@ -2338,8 +2394,8 @@ class Graph(Element):
         pen = QPen(qcolor)
         qcolor = QColor(fill_color)
         brush = QBrush(qcolor)
-        circle_id = self.QT_QGraphicsScene.addEllipse(self.x+converted_point[0], self.y+converted_point[1],
-                                           radius, radius, pen=pen, brush=brush)
+        circle_id = self.QT_QGraphicsScene.addEllipse(self.x + converted_point[0] - radius, self.y + converted_point[1] - radius,
+                                                      radius * 2, radius * 2, pen=pen, brush=brush)
         return circle_id            # type: QGraphicsEllipseItem
 
     def RelocateFigure(self, id, x, y):
@@ -2494,7 +2550,7 @@ class Graph(Element):
 #                           Frame                                        #
 # ---------------------------------------------------------------------- #
 class Frame(Element):
-    def __init__(self, title, layout, title_color=None, background_color=None, title_location=None,
+    def __init__(self, title, layout, title_color=None, background_color=None, title_location=None, frame_color=None,
                  relief=DEFAULT_FRAME_RELIEF, element_justification='float', size=(None, None), font=None, pad=None, border_width=None, key=None, k=None,
                  tooltip=None, visible=True, size_px=(None,None), metadata=None):
         """
@@ -2508,6 +2564,8 @@ class Frame(Element):
         :type background_color: (str)
         :param title_location: location to place the text title.  Choices include: TITLE_LOCATION_TOP TITLE_LOCATION_BOTTOM TITLE_LOCATION_LEFT TITLE_LOCATION_RIGHT TITLE_LOCATION_TOP_LEFT TITLE_LOCATION_TOP_RIGHT TITLE_LOCATION_BOTTOM_LEFT TITLE_LOCATION_BOTTOM_RIGHT
         :type title_location: (enum)
+        :param frame_color: color of the frame lines
+        :type frame_color: (str)
         :param relief: relief style. Values are same as other elements with reliefs. Choices include RELIEF_RAISED RELIEF_SUNKEN RELIEF_FLAT RELIEF_RIDGE RELIEF_GROOVE RELIEF_SOLID
         :type relief: (enum)
         :param element_justification: All elements inside the Frame will have this justification 'left', 'right', 'center' are valid values
@@ -2533,6 +2591,7 @@ class Frame(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.UseDictionary = False
         self.ReturnValues = None
         self.ReturnValuesList = []
@@ -2548,6 +2607,7 @@ class Frame(Element):
         self.BorderWidth = border_width
         self.BackgroundColor = background_color if background_color is not None else DEFAULT_BACKGROUND_COLOR
         self.ElementJustification = element_justification
+        self.FrameColor = frame_color
         self.Widget = self.QT_QGroupBox = None              # type: QGroupBox
         self.Layout(layout)
 
@@ -2665,6 +2725,7 @@ class Tab(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.UseDictionary = False
         self.ReturnValues = None
         self.ReturnValuesList = []
@@ -2782,6 +2843,7 @@ class TabGroup(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.UseDictionary = False
         self.ReturnValues = None
         self.ReturnValuesList = []
@@ -2922,7 +2984,7 @@ class Slider(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
-
+        key = key if key is not None else k
         self.TKScale = None
         self.Range = (1, 10) if range == (None, None) else range
         self.DefaultValue = self.Range[0] if default_value is None else default_value
@@ -3020,6 +3082,7 @@ class Dial(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.TKScale = None
         self.Range = (1, 10) if range == (None, None) else range
         self.DefaultValue = self.Range[0] if default_value is None else default_value
@@ -3081,6 +3144,7 @@ class Stretch(Element):
         :param tooltip: text, that will appear when mouse hovers over the element
         :type tooltip: (str)
         """
+        key = key if key is not None else k
         self.Widget = None          # type: Stretch
         super().__init__(ELEM_TYPE_STRETCH, size=size, font=font, background_color=background_color,
                          text_color=text_color, key=key, pad=pad, tooltip=tooltip)
@@ -3117,6 +3181,7 @@ class Column(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.UseDictionary = False
         self.ReturnValues = None
         self.ReturnValuesList = []
@@ -3200,7 +3265,10 @@ class Menu(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.BackgroundColor = background_color if background_color is not None else DEFAULT_BACKGROUND_COLOR
+        self.MenuItemTextColor = theme_text_color()
+        self.MenuItemBackgroundColor = theme_background_color()
         self.MenuDefinition = menu_definition
         self.TKMenu = None
         self.Tearoff = tearoff
@@ -3310,6 +3378,7 @@ class Table(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.Values = values
         self.ColumnHeadings = headings
         self.ColumnsToDisplay = visible_column_map
@@ -3319,8 +3388,8 @@ class Table(Element):
         self.AutoSizeColumns = auto_size_columns
         self.BackgroundColor = background_color if background_color is not None else DEFAULT_BACKGROUND_COLOR
         self.TextColor = text_color
-        self.HeaderTextColor = header_text_color if header_text_color is not None else LOOK_AND_FEEL_TABLE[CURRENT_LOOK_AND_FEEL]['TEXT_INPUT']
-        self.HeaderBackgroundColor = header_background_color if header_background_color is not None else LOOK_AND_FEEL_TABLE[CURRENT_LOOK_AND_FEEL]['INPUT']
+        self.HeaderTextColor = header_text_color if header_text_color is not None else theme_input_text_color()
+        self.HeaderBackgroundColor = header_background_color if header_background_color is not None else theme_input_background_color()
         self.HeaderFont = header_font
         self.Justification = justification
         self.InitialState = None
@@ -3446,7 +3515,7 @@ class Tree(Element):
     def __init__(self, data=None, headings=None, visible_column_map=None, col_widths=None, col0_width=10,
                  def_col_width=10, auto_size_columns=True, max_col_width=20, select_mode=None, show_expanded=False,
                  change_submits=False, enable_events=False, font=None, size=(200,600),
-                 justification='right', text_color=None, background_color=None, num_rows=None, pad=None, key=None, k=None,
+                 justification='right', header_text_color=None, header_background_color=None, header_font=None,  text_color=None, background_color=None, num_rows=None, pad=None, key=None, k=None,
                  tooltip=None, visible=True, size_px=(None,None), metadata=None):
         """
         :param data: The data represented using a PySimpleGUI provided TreeData class
@@ -3479,6 +3548,12 @@ class Tree(Element):
         :type size: ???
         :param justification: 'left', 'right', 'center' are valid choices
         :type justification: (str)
+        :param header_text_color: sets the text color for the header
+        :type header_text_color: (str)
+        :param header_background_color: sets the background color for the header
+        :type header_background_color: (str)
+        :param header_font: specifies the font family, size, etc
+        :type header_font: Union[str, Tuple[str, int]]
         :param text_color: color of the text
         :type text_color: (str)
         :param background_color: color of background
@@ -3500,6 +3575,7 @@ class Tree(Element):
         :param metadata: User metadata that can be set to ANYTHING
         :type metadata: (Any)
         """
+        key = key if key is not None else k
         self.TreeData = data
         self.ColumnHeadings = headings
         self.ColumnsToDisplay = visible_column_map
@@ -3509,6 +3585,9 @@ class Tree(Element):
         self.AutoSizeColumns = auto_size_columns
         self.BackgroundColor = background_color if background_color is not None else DEFAULT_BACKGROUND_COLOR
         self.TextColor = text_color
+        self.HeaderTextColor = header_text_color if header_text_color is not None else theme_input_text_color()
+        self.HeaderBackgroundColor = header_background_color if header_background_color is not None else theme_input_background_color()
+        self.HeaderFont = header_font
         self.Justification = justification
         self.InitialState = None
         self.SelectMode = select_mode
@@ -4037,7 +4116,8 @@ class Window:
         self.UniqueKeyCounter = 0
         self.metadata = metadata
         self.ElementJustification = element_justification
-
+        self.AllKeysDict = {}
+        self.margins = margins
 
         if layout is not None:
             self.Layout(layout)
@@ -4063,7 +4143,7 @@ class Window:
         CurrentRow = []  # start with a blank row and build up
         # -------------------------  Add the elements to a row  ------------------------- #
         for i, element in enumerate(args):  # Loop through list of elements and add them to the row
-            if type(element) == list:
+            if type(element) is list:
                 PopupError('Error creating layout',
                       'Layout has a LIST instead of an ELEMENT',
                       'This means you have a badly placed ]',
@@ -4780,6 +4860,139 @@ FlexForm = Window
 
 
 
+
+
+class QtStyle(object):
+    '''
+        API
+
+        # step 1 - make a style
+        ss = QtStyle(QLabel)
+
+        # step 2 - add fields
+        ss['font'] = create_style_from_font()
+        ss['background_color'] = (color, color_default)
+        ss['color'] = (color, color_default)
+        # step 2.1 - add additions
+        ss.append_css_to_end.append(" QScrollBar:vertical { ... some css here ...  } ")
+        # step 2.2 - add anchor
+        ss.my_anchor = '::chunk'
+
+        # step 3 - build result
+        css_str = ss.build_css_string()
+        qt_widget.setStyleSheet(css_str)
+
+        ====== Special fields
+        - font
+        - margin
+        Why they are special? Because of the formatting.
+
+        === === ===
+        made by nngogol
+    '''
+
+    def __init__(self, widget_name=''):
+        self.widget_name = widget_name
+        self.css_props = {}
+        self.my_anchor = None
+
+        self.logging = True
+        self.logging = not True
+        self.append_css_to_end = []
+
+        self.make_secure_check = True  # Check if "css property is valid, i.e. it's present in default names".
+        #                               Make makes development safer, if you have a erro in spelling css-property
+        #                               In production: it can be disabled, I guess.
+
+    def __setitem__(self, css_prop_name, css_prop_value):
+
+        css_prop_name = css_prop_name.replace('_', '-')
+        # validation
+        if not isinstance(css_prop_value, (tuple, list, str)):
+            raise Exception('Bad value fro css property -> %s.' % css_prop_value)
+        if self.make_secure_check:
+            if not is_valid_css_prop(css_prop_name):
+                raise Exception('Bad css property name: ' % css_prop_name)
+
+        self.css_props[css_prop_name] = css_prop_value
+
+    def build_css_string(self):
+        # no css props added -> return empty string
+        if not self.css_props:  # empty case
+            print(f' final_str # {self.widget_name} = ""')
+            return ''
+
+        css_props_str_list = []
+        for key, value in self.css_props.items():
+            # special cases:
+            if key == 'margin' or key == 'padding':
+                # validation
+                if not isinstance(value, (tuple, list)):
+                    raise Exception('Cant handle this TYPE for margin property : %s ' % str(type(value)))
+
+                result_css_string = ''
+
+                if len(value) == 4:
+                    # skip all zeros
+                    if value[0] == value[1] == value[2] == value[3] == 0: result_css_string = ''
+
+                    result_css_string = '{} : {}px {}px {}px {}px;'.format(key, *value)
+                elif len(value) == 1:
+                    # skip all zeros
+                    if value[0] == 0: continue
+
+                    result_css_string = '{} : {}px;'.format(key, value[0])
+                else:
+                    raise Exception('Bad value for margin/padding property: ' % str(value))
+
+                # # Fix for this case:
+                # # Wrong:    margin: 0px;
+                # # Right:    margin: 0;
+                # result_css_string = result_css_string.replace(': 0px', ': 0')
+
+                css_props_str_list.append(result_css_string)
+
+                continue
+            # if key == 'border': ...
+
+            # it's a css string! Format: 'propery: value;''
+            if isinstance(value, str):
+                # is css prop name + css prop value
+                if ':' in value:
+                    css_props_str_list.append(value)
+                # is css value
+                else:
+                    css_props_str_list.append(_to_css_prop(key, value))
+                # we continue, because it was 'string type parsing'
+                continue
+
+            isnot = None
+            # it's a pair! Format: (val, default_val)
+            if isinstance(value, (tuple, list)):
+                user_css_prop_value, isnot = value
+
+            if user_css_prop_value is not None and user_css_prop_value != isnot:
+                css_props_str_list.append(_to_css_prop(key, user_css_prop_value))
+
+        # join all props
+        css_all = ''.join(css_props_str_list)
+        final_str = css_all
+        if self.widget_name:
+            my_anchor = '' if self.my_anchor is None else self.my_anchor
+            final_str = '%s%s { %s }' % (self.widget_name, my_anchor, css_all)
+
+        # if needed: append some css from self.append_css_to_end
+        final_str += ' '.join(self.append_css_to_end)
+
+        if self.logging: print(f'final css string (self.widget_name): {final_str}')
+        return final_str
+
+    def __repr__(self):
+        return self.build_css_string()
+
+
+
+
 # =========================================================================== #
 # Stops the mainloop and sets the event information                           #
 # =========================================================================== #
@@ -4825,31 +5038,37 @@ def convert_tkinter_filetypes_to_qt(filetypes):
 # =========================================================================== #
 def create_style_from_font(font):
     """
-    Convert from font string/tyuple into a Qt style sheet string
-    :param font: "Arial 10 Bold" or ('Arial', 10, 'Bold)
+    Convert from font string/tuple into a Qt style sheet string
+    :param font: "Arial 10 Bold" or ('Arial', 10, 'Bold')
     :return: style string that can be combined with other style strings
     """
 
-    if font is None:
-        return ''
+    if font is None: return ''
+    _font = font.split(' ') if type(font) is str else font
 
-    if type(font) is str:
-        _font = font.split(' ')
-    else:
-        _font = font
-
-    style = ''
-    style += 'font-family: %s;\n' % _font[0]
-    style += 'font-size: %spt;\n' % _font[1]
-    font_items = ''
-    for item in _font[2:]:
-        if item == 'underline':
-            style += 'text-decoration: underline;\n'
+    # parsing name + size
+    font_name, font_size = _font[:2]
+    # parsing options:
+    is_bold, is_underline = False, False
+    if len(_font) > 2:
+        options = _font[2:]
+        for some_option in options:
+            if some_option == 'underline':
+                is_underline = True
         else:
-            font_items += item + ' '
-    if font_items != '':
-        style += 'font: %s;\n' % (font_items)
-    return style
+                is_bold = True
+
+    # build
+    is_bold_text      = 'font-weight : bold;'         if is_bold else ''
+    is_underline_text = 'text-decoration: underline;' if is_underline else ''
+
+    return textwrap.dedent(f'''
+        {is_underline_text}
+        {is_bold_text}
+        font-family: "{font_name}";
+        font-size: {font_size}pt;
+        '''.strip()).replace('\n', '')
+
 
 def set_widget_visiblity(widget, visible):
     if visible is False:
@@ -5620,7 +5839,7 @@ def AddTrayMenuItem(top_menu, sub_menu_info, element, is_sub_menu=False, skip=Fa
         while i < (len(sub_menu_info)):
             item = sub_menu_info[i]
             if i != len(sub_menu_info) - 1:
-                if type(sub_menu_info[i + 1]) == list:
+                if type(sub_menu_info[i + 1]) is list:
                     new_menu = QMenu(top_menu)
                     item = sub_menu_info[i]
                     try:
@@ -5670,8 +5889,22 @@ def AddMenuItem(top_menu, sub_menu_info, element, is_sub_menu=False, skip=False)
         while i < (len(sub_menu_info)):
             item = sub_menu_info[i]
             if i != len(sub_menu_info) - 1:
-                if type(sub_menu_info[i + 1]) == list:
+                if type(sub_menu_info[i + 1]) is list:
                     new_menu = QMenu(top_menu)
+                    #
+                    # # === style ===
+                    # menu_style = _Style('QMenu')
+                    # menu_style['font'] = create_style_from_font(element.Font)
+                    # if element.TextColor is not None and element.TextColor != COLOR_SYSTEM_DEFAULT:
+                    #     menu_style['color'] = element.TextColor
+                    # if element.BackgroundColor is not None and element.BackgroundColor != COLOR_SYSTEM_DEFAULT:
+                    #     menu_style['background-color'] = element.BackgroundColor
+                    # # style['margin'] = full_element_pad
+                    # new_menu.setStyleSheet(menu_style.build_css_string())
+                    # print(menu_style)
+                    # # element.qt_styles = (style,)
+                    # # === style === end
+                    #
                     # Key handling.... strip off key before setting text
                     item = sub_menu_info[i]
                     try:
@@ -5737,42 +5970,18 @@ Q:::::::QQ::::::::Q      t::::::tttt:::::t
 # =====================================   Qt CODE STARTS HERE ====================================================== #
 # ------------------------------------------------------------------------------------------------------------------ #
 # ------------------------------------------------------------------------------------------------------------------ #
-def style_entry(**kwargs):
-    generated_style = ''
-    for Qt_property, value in kwargs.items():
-        generated_style += "\t{} : {};\n".format(Qt_property.replace('_','-'), value)
-
-        # generated_style += "}"
-    return generated_style
-
-def style_generate(qt_element_type, entries):
-    generated_style = qt_element_type + " {\n"
-    generated_style += entries
-    generated_style += "}"
-    return generated_style
-
-
-class Style(object):
-    def __init__(self, id, **kwargs):
-        self.content = id + " {\n}"
-        self.add(**kwargs)
-
-    def add(self, **kwargs):
-        self.content = self.content[:-1]
-        for key, value in kwargs.items():
-            if isinstance(value, (tuple, list)):
-                value, isnot = value
-            else:
-                isnot = None
-            if value is not None and value != isnot:
-                self.content += "\t{} : {};\n".format(key.replace("_", "-"), value)
-        self.content += "}"
-
-    def append(self, value):
-        self.content = self.content[:-1] + value + "\n}"
-
-    def __repr__(self):
-        return self.content
+# to_css_prop(css_prop.replace('_','-'), value)
+def _to_css_prop(key_, val_):
+    return "{}:{}; ".format(key_.replace('_', '-'), val_)
+# def style_generate(qt_element_type, css_props_str):
+#     return '%s {\n %s \n}' % (qt_element_type, css_props_str)
+_valid_css_fields = ['align-content', 'align-items', 'align-self', 'background', 'background-attachment', 'background-color', 'background-image', 'background-position', 'background-size', 'border', 'border-collapse', 'border-image', 'border-radius', 'border-spacing', 'bottom', 'box-decoration-break', 'caret-color', 'clear', 'clip-path', 'color', 'color-adjust', 'column-count', 'column-fill', 'column-gap', 'column-rule', 'column-rule-color', 'column-rule-style', 'column-rule-width', 'column-span', 'column-width', 'columns', 'contain', 'content', 'counter-increment', 'counter-reset', 'counter-set', 'cursor', 'direction', 'display', 'empty-cells', 'fill', 'filter', 'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap', 'float', 'font', 'font-display', 'font-family', 'font-feature-settings', 'font-kerning', 'font-optical-sizing', 'font-size', 'font-size-adjust', 'font-stretch', 'font-style', 'font-synthesis', 'font-variant', 'font-variant-numeric', 'font-weight', 'gap', 'grid-column', 'grid-row', 'grid-template-columns', 'grid-template-rows', 'hanging-punctuation', 'height', 'hyphens', 'image-rendering', 'initial-letter', 'inline-size', 'inset', 'inset-block', 'inset-block-end', 'inset-block-start', 'inset-inline', 'inset-inline-end', 'inset-inline-start', 'isolation', 'justify-content', 'left', 'letter-spacing', 'line-clamp', 'line-height', 'list-style', 'margin', 'mask-image', 'mask-position', 'mask-repeat', 'mask-size', 'max-height', 'max-width', 'min-height', 'min-width', 'mix-blend-mode', 'object-fit', 'object-position', 'offset-anchor', 'offset-distance', 'offset-path', 'offset-rotate', 'opacity', 'order', 'orphans', 'outline', 'outline-offset', 'overflow', 'overflow-anchor', 'overflow-wrap', 'overscroll-behavior', 'padding', 'page-break', 'paint-order', 'perspective', 'perspective-origin', 'place-items', 'pointer-events', 'position', 'quotes', 'resize', 'right', 'row-gap', 'scroll-behavior', 'scroll-margin', 'scroll-padding', 'scroll-snap-align', 'scroll-snap-stop', 'scroll-snap-type', 'scrollbar', 'scrollbar-color', 'scrollbar-gutter', 'scrollbar-width', 'shape-image-threshold', 'shape-margin', 'shape-outside', 'speak', 'stroke', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-width', 'tab-size', 'table-layout', 'text-align', 'text-align-last', 'text-decoration', 'text-decoration-color', 'text-decoration-line', 'text-decoration-skip', 'text-decoration-skip-ink', 'text-decoration-style', 'text-decoration-thickness', 'text-indent', 'text-justify', 'text-overflow', 'text-rendering', 'text-shadow', 'text-stroke', 'text-transform', 'text-underline-offset', 'text-underline-position', 'top', 'touch-action', 'transform', 'transform-origin', 'transform-style', 'transition', 'transition-delay', 'transition-duration', 'transition-property', 'transition-timing-function', 'unicode-bidi', 'unicode-range', 'user-select', 'vertical-align', 'visibility', 'white-space', 'widows', 'width', 'will-change', 'word-break', 'word-spacing', 'writing-mode', 'z-index', 'zoom']
+def is_valid_css_prop(a_css_prop):
+    '''Check if a given property EXISTS in qt Spec'''
+    return True
+    global _valid_css_fields
+    norm_ = a_css_prop.replace('_', '-')
+    return norm_ in _valid_css_fields
 
 
 def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
@@ -5784,6 +5993,8 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
     :param toplevel_form: ???
     :type toplevel_form: (Window)
     """
+    # align2qt_align
+    align2qt_align = {'c': Qt.AlignCenter, 'l': Qt.AlignLeft, 'r': Qt.AlignRight}
 
     border_depth = toplevel_win.BorderDepth if toplevel_win.BorderDepth is not None else DEFAULT_BORDER_WIDTH
     # --------------------------------------------------------------------------- #
@@ -5798,12 +6009,9 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
         # *********** -------  Loop through ELEMENTS  ------- ***********#
         # *********** Make TK Row                             ***********#
         qt_row_layout = QHBoxLayout()
-        if container_elem.ElementJustification.startswith('c'):
-            qt_row_layout.setAlignment(Qt.AlignCenter)
-        elif container_elem.ElementJustification.startswith('r'):
-            qt_row_layout.setAlignment(Qt.AlignRight)
-        elif container_elem.ElementJustification.startswith('l'):
-            qt_row_layout.setAlignment(Qt.AlignLeft)
+        elem_align = container_elem.ElementJustification[0]
+        if elem_align in align2qt_align:
+            qt_row_layout.setAlignment(align2qt_align[elem_align])
         for col_num, element in enumerate(flex_row):
             element.ParentForm = toplevel_win  # save the button's parent form object
             element.row_frame = qt_row_layout
@@ -5834,11 +6042,12 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 auto_size_text = False  # if user has specified a size then it shouldn't autosize
             full_element_pad = [0,0,0,0]       # Top, Right, Bottom, Left
             elementpad = element.Pad if element.Pad is not None else toplevel_win.ElementPadding
-            if type(elementpad[0]) != tuple:   # left and right
+            if type(elementpad[0]) is not tuple:   # left and right
                 full_element_pad[1] = full_element_pad[3] = elementpad[0]
             else:
                 full_element_pad[3], full_element_pad[1] = elementpad[0]
-            if type(elementpad[1]) != tuple:   # top and bottom
+
+            if type(elementpad[1]) is not tuple:   # top and bottom
                 full_element_pad[0] = full_element_pad[2] = elementpad[1]
             else:
                 full_element_pad[0], full_element_pad[2] = elementpad[1]
@@ -5857,18 +6066,16 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 column_widget = QGroupBox()
                 element.Widget = element.QT_QGroupBox = column_widget
                 # column_widget.setFrameShape(QtWidgets.QFrame.NoFrame)
-                style = create_style_from_font(font)
-                if element.BackgroundColor is not None:
-                    style = style_entry(background_color=element.BackgroundColor)
-                    # style += 'background-color: %s;' % element.BackgroundColor
-                style += style_entry(border='0px solid gray')
-                # style += style_entry(margin='{}px {}px {}px {}px'.format(*full_element_pad))
-                # style += style_entry(margin='0px 0px 0px 0px')
-                # style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
 
-                # style += 'border: 0px solid gray; '
-                style = style_generate('QGroupBox', style)
-                column_widget.setStyleSheet(style)
+                # === style ===
+                style = QtStyle('QGroupBox')
+                style['font'] = create_style_from_font(font)
+                if element.BackgroundColor is not None:
+                    style['background_color'] = element.BackgroundColor
+                style['border'] = '0px solid gray' # FIXv2
+                column_widget.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
                 column_layout = QFormLayout()
                 element.vbox_layout = column_vbox = QVBoxLayout()
@@ -5891,10 +6098,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 if not element.Visible:
                     column_widget.setVisible(False)
 
-                if scroll:
-                    qt_row_layout.addWidget(scroll)
-                else:
-                    qt_row_layout.addWidget(column_widget)
+                qt_row_layout.addWidget(scroll if scroll else column_widget, alignment=Qt.AlignVCenter)
             # -------------------------  TEXT placement element  ------------------------- #
             elif element_type == ELEM_TYPE_TEXT:
                 element.Widget = element.QT_Label = qlabel = QLabel(element.DisplayText, toplevel_win.QTWindow)
@@ -5904,24 +6108,25 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     justification = toplevel_win.TextJustification
                 else:
                     justification = DEFAULT_TEXT_JUSTIFICATION
-                if justification[0] == 'c':
-                    element.QT_Label.setAlignment(Qt.AlignCenter)
-                elif justification[0] == 'r':
-                    element.QT_Label.setAlignment(Qt.AlignRight)
+
+                if justification[0] in align2qt_align:
+                    element.QT_Label.setAlignment(align2qt_align[justification[0]])
                 if not auto_size_text:
                     if element_size[0] is not None:
                         element.QT_Label.setFixedWidth(element_size[0])
                     if element_size[1] is not None:
                         element.QT_Label.setFixedHeight(element_size[1])
                 # element.QT_Label.setWordWrap(True)
-                style = Style('QLabel')
-                style.append(create_style_from_font(font))
-                style.add(color=(element.TextColor, COLOR_SYSTEM_DEFAULT))
-                style.add(background_color=(element.BackgroundColor, COLOR_SYSTEM_DEFAULT))
-                element.QT_Label.setStyleSheet(style.content)
 
-                if element.ClickSubmits:
-                    element.QT_Label.mousePressEvent = element._QtCallbackTextClicked
+                # === style ===
+                style = QtStyle('QLabel')
+                style['font'] = create_style_from_font(font)
+                style['color'] = (element.TextColor, COLOR_SYSTEM_DEFAULT)
+                style['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
+                style['margin'] = full_element_pad
+                element.QT_Label.setStyleSheet(str(style))
+                element.qt_styles = (style,)
+                # === style === end
 
                 if element.Relief is not None:
                     if element.Relief in (RELIEF_RIDGE, RELIEF_RAISED):
@@ -5934,26 +6139,30 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 if element.Margins is not None:
                     m = element.Margins
                     qlabel.setContentsMargins(m[0], m[2], m[1], m[3])  # L T B R
-                if element.Tooltip:
-                    element.QT_Label.setToolTip(element.Tooltip)
+                if element.Tooltip:         element.QT_Label.setToolTip(element.Tooltip)
+                if element.ClickSubmits:    element.QT_Label.mousePressEvent = element._QtCallbackTextClicked
                 if not element.Visible:
                     element.QT_Label.setVisible(False)
-                qt_row_layout.addWidget(element.QT_Label)
+                qt_row_layout.addWidget(element.QT_Label, alignment=Qt.AlignVCenter)
             # -------------------------  BUTTON placement element  ------------------------- #
             elif element_type == ELEM_TYPE_BUTTON:
                 element = element            #type: Button
                 btext = element.ButtonText
                 btype = element.BType
                 element.Widget = element.QT_QPushButton = QPushButton(btext)
-                style = Style('QPushButton')
-                style.append(create_style_from_font(font))
-                style.add(color=(element.TextColor, COLOR_SYSTEM_DEFAULT))
-                style.add(background_color=(element.BackgroundColor))
+                # === style ===
+                style = QtStyle('QPushButton')
+                style['font'] = create_style_from_font(font)
+                style['color'] = (element.TextColor, COLOR_SYSTEM_DEFAULT)
+                style['background_color'] = (element.BackgroundColor)
                 if element.BorderWidth == 0:
-                    style.add(border='none')
-                style.add(margin='{}px {}px {}px {}px'.format(*full_element_pad))
-                # style.add(border='{}px solid gray '.format(border_depth))
-                element.QT_QPushButton.setStyleSheet(style.content)
+                    style['border'] = 'none'
+                style['margin'] = full_element_pad
+                # style['border'] = '{}px solid gray '.format(border_depth)
+                element.QT_QPushButton.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
+
                 # element.QT_QPushButton.setFlat(False)
                 if (element.AutoSizeButton is False or toplevel_win.AutoSizeButtons is False or element.Size[0] is not None) and element.ImageData is None:
                     if element_size[0] is not None:
@@ -5961,27 +6170,12 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     if element_size[1] is not None:
                         element.QT_QPushButton.setFixedHeight(element_size[1])
 
-                #
-                # elif element.Data is not None:
-                #     qlabel.setText('')
-                #     ba = QtCore.QByteArray.fromRawData(element.Data)
-                #     pixmap = QtGui.QPixmap()
-                #     pixmap.loadFromData(ba)
-                #     qlabel.setPixmap(pixmap)
-                # elif element.DataBase64:
-                #     qlabel.setText('')
-                #     ba = QtCore.QByteArray.fromBase64(element.DataBase64)
-                #     pixmap = QtGui.QPixmap()
-                #     pixmap.loadFromData(ba)
-                #     qlabel.setPixmap(pixmap)
-
                 if element.ImageFilename is not None:
                     element.QT_QPushButton.setIcon(QtGui.QPixmap(element.ImageFilename))
                     element.QT_QPushButton.setIconSize(QtGui.QPixmap(element.ImageFilename).rect().size())
                 if element.ImageData:
                     ba = QtCore.QByteArray.fromBase64(element.ImageData)
-                    pixmap = QtGui.QPixmap()
-                    pixmap.loadFromData(ba)
+                    pixmap = QtGui.QPixmap(); pixmap.loadFromData(ba)
                     element.QT_QPushButton.setIcon(pixmap)
                     element.QT_QPushButton.setIconSize(pixmap.rect().size())
 
@@ -5994,7 +6188,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 if not element.Visible:
                     element.QT_QPushButton.setVisible(False)
 
-                qt_row_layout.addWidget(element.QT_QPushButton)
+                qt_row_layout.addWidget(element.QT_QPushButton, alignment=Qt.AlignVCenter)
             # -------------------------  INPUT placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_TEXT:
                 element = element       # type: InputText
@@ -6005,29 +6199,30 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 qlineedit.dragEnterEvent = element._dragEnterEvent
                 qlineedit.dropEvent = element._dropEvent
 
-                if element.Justification[0] == 'c':
-                    element.QT_QLineEdit.setAlignment(Qt.AlignCenter)
-                elif element.Justification[0] == 'r':
-                    element.QT_QLineEdit.setAlignment(Qt.AlignRight)
+                if element.Justification[0] in align2qt_align:
+                    element.QT_QLineEdit.setAlignment(align2qt_align[element.Justification[0]])
                 element.QT_QLineEdit.setText(str(default_text))
 
-                style = Style('QLineEdit')
-                style.append(create_style_from_font(font))
+                # === style ===
+                style = QtStyle('QLineEdit')
+                style['font'] = create_style_from_font(font)
                 if element.Disabled or element.ReadOnly:
                     if element.disabled_readonly_background_color:
-                        style.add(background_color=(element.disabled_readonly_background_color, COLOR_SYSTEM_DEFAULT))
+                        style['background_color'] = (element.disabled_readonly_background_color, COLOR_SYSTEM_DEFAULT)
                     else:
-                        style.add(background_color=(element.BackgroundColor, COLOR_SYSTEM_DEFAULT))
+                        style['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
                     if element.disabled_readonly_text_color:
-                        style.add(color=(element.disabled_readonly_text_color, COLOR_SYSTEM_DEFAULT))
+                        style['color'] = (element.disabled_readonly_text_color, COLOR_SYSTEM_DEFAULT)
                     else:
-                        style.add(color=(element.TextColor, COLOR_SYSTEM_DEFAULT))
+                        style['color'] = (element.TextColor, COLOR_SYSTEM_DEFAULT)
                 else:
-                    style.add(background_color=(element.BackgroundColor, COLOR_SYSTEM_DEFAULT))
-                    style.add(color=(element.TextColor, COLOR_SYSTEM_DEFAULT))
-                style.add(margin='{}px {}px {}px {}px'.format(*full_element_pad))
-                style.add(border='{}px solid gray '.format(border_depth))
-                element.QT_QLineEdit.setStyleSheet(style.content)
+                    style['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
+                    style['color'] = (element.TextColor, COLOR_SYSTEM_DEFAULT)
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray '.format(border_depth)
+                element.QT_QLineEdit.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
                 if element.AutoSizeText is False or toplevel_win.AutoSizeText is False or element.Size[0] is not None:
                     if element_size[0] is not None:
@@ -6059,38 +6254,39 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element.QT_QLineEdit.installEventFilter(element.InputTextWidget)
                 if not element.Visible:
                     element.QT_QLineEdit.setVisible(False)
-                qt_row_layout.addWidget(element.QT_QLineEdit)
+                qt_row_layout.addWidget(element.QT_QLineEdit, alignment=Qt.AlignVCenter)
             # -------------------------  COMBO placement BOX (Drop Down) element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_COMBO:
+                element = element   # type: Combo
                 element.Widget = element.QT_ComboBox = QComboBox()
-                max_line_len = max([len(str(l)) for l in element.Values])
-                if auto_size_text is False:
-                    width = element_size[0]
-                else:
-                    width = max_line_len
 
-                style = Style('QComboBox')
-                style.append(create_style_from_font(font))
-                style.add(color=(element.TextColor, COLOR_SYSTEM_DEFAULT))
-                style.add(background_color=(element.BackgroundColor, COLOR_SYSTEM_DEFAULT))
-                style.add(border='{}px solid gray '.format(border_depth))
-                style2 = Style('QListView')
-                style2.add(color=(element.TextColor, COLOR_SYSTEM_DEFAULT))
-                style2.add(background_color=(element.BackgroundColor, COLOR_SYSTEM_DEFAULT))
-
-                element.QT_ComboBox.setStyleSheet(style.content+style2.content)
-
-                if not auto_size_text:
-                    if element_size[0] is not None:
-                        element.QT_ComboBox.setFixedWidth(element_size[0])
-                    if element_size[1] is not None:
-                        element.QT_ComboBox.setFixedHeight(element_size[1])
-
-                if element.Disabled:
-                    element.QT_ComboBox.setDisabled(True)
                 items_as_strings = [str(v) for v in element.Values]
                 # element.QT_ComboBox.addItems(element.Values)
                 element.QT_ComboBox.addItems(items_as_strings)
+
+                # === style ===
+                style = QtStyle('QComboBox')
+                style['font'] = create_style_from_font(font)
+                style['color'] = (element.TextColor, COLOR_SYSTEM_DEFAULT)
+                style['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
+                style['border'] = '{}px solid gray '.format(border_depth)
+                style['margin'] = full_element_pad
+
+                style2 = QtStyle('QListView')
+                style2['color'] = (element.TextColor, COLOR_SYSTEM_DEFAULT)
+                style2['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
+
+                element.QT_ComboBox.setStyleSheet(str(style)+str(style2))
+                element.qt_styles = (style, style2)
+                # === style === end
+
+                if element_size[0] is not None:
+                    element.QT_ComboBox.setFixedWidth(element_size[0])
+                if element_size[1] is not None:
+                    element.QT_ComboBox.setFixedHeight(element_size[1])
+
+                if element.Disabled:
+                    element.QT_ComboBox.setDisabled(True)
 
                 element.QT_ComboBox.setMaxVisibleItems(element.VisibleItems)
                 if element.DefaultValue is not None:
@@ -6109,33 +6305,28 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_ComboBox.setAutoCompletion(True)
                 if not element.Visible:
                     element.QT_ComboBox.setVisible(False)
-                qt_row_layout.addWidget(element.QT_ComboBox)
+                qt_row_layout.addWidget(element.QT_ComboBox, alignment=Qt.AlignVCenter)
             # -------------------------  OPTION MENU (Like ComboBox but different) element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_OPTION_MENU:
-                max_line_len = max([len(str(l)) for l in element.Values])
+                pass
             # -------------------------  LISTBOX placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_LISTBOX:
                 element = element       # type: Listbox
-                max_line_len = max([len(str(l)) for l in element.Values]) if len(element.Values) != 0 else 0
                 element.Widget = element.QT_ListWidget = QListWidget()
-                style = element.QT_ListWidget.styleSheet()
-                # style += """QScrollBar:vertical {
-                #             border: none;
-                #             background:lightgray;
-                #             width:12px;
-                #             margin: 0px 0px 0px 0px;
-                #         } """
-                style = 'QListWidget {'
-                style += create_style_from_font(font)
 
+                # === style ===
+                style = QtStyle('QListWidget')
+                style['font'] = create_style_from_font(font)
                 if element.TextColor is not None and element.TextColor != COLOR_SYSTEM_DEFAULT:
-                    style += 'color: %s;' % element.TextColor
+                    style['color'] = element.TextColor
                 if element.BackgroundColor is not None and element.BackgroundColor != COLOR_SYSTEM_DEFAULT:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                style += '}'
-                element.QT_ListWidget.setStyleSheet(style)
+                    style['background-color'] = element.BackgroundColor # example for mike here
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray; '.format(border_depth)
+                element.QT_ListWidget.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
+
                 if not auto_size_text:
                     if element_size[0] is not None:
                         element.QT_ListWidget.setFixedWidth(element_size[0])
@@ -6150,15 +6341,11 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_ListWidget.setSelectionMode(QAbstractItemView.ContiguousSelection)
                 elif element.SelectMode == SELECT_MODE_SINGLE:
                     element.QT_ListWidget.setSelectionMode(QAbstractItemView.SingleSelection)
+                if element.Disabled: element.QT_ListWidget.setDisabled(True)
+                if element.ChangeSubmits: element.QT_ListWidget.currentRowChanged.connect(element._QtCurrentRowChanged)
 
-                if element.Disabled:
-                    element.QT_ListWidget.setDisabled(True)
-
-                if element.ChangeSubmits:
-                    element.QT_ListWidget.currentRowChanged.connect(element._QtCurrentRowChanged)
                 # add all Values to the ListWidget
-                items = [str(v) for v in element.Values]
-                element.QT_ListWidget.addItems(items)
+                element.QT_ListWidget.addItems([str(v) for v in element.Values])
                 # select the default items
                 for index, value in enumerate(element.Values):
                     item = element.QT_ListWidget.item(index)
@@ -6169,7 +6356,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_ListWidget.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_ListWidget.setVisible(False)
-                qt_row_layout.addWidget(element.QT_ListWidget)
+                qt_row_layout.addWidget(element.QT_ListWidget, alignment=Qt.AlignVCenter)
             # -------------------------  INPUT MULTILINE placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_MULTILINE:
                 element = element           # type: Multiline
@@ -6181,17 +6368,17 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element.QT_TextEdit.dragEnterEvent = element._dragEnterEvent
                 element.QT_TextEdit.dropEvent = element._dropEvent
 
-                style = 'QTextEdit {'
-                style += create_style_from_font(font)
+                # === style ===
+                style = QtStyle('QTextEdit')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray; '.format(border_depth)
+                element.QT_TextEdit.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                style += '}'
-                element.QT_TextEdit.setStyleSheet(style)
 
                 if element.AutoSizeText is False or element.Size[0] is not None:
                     if element_size[0] is not None:
@@ -6219,24 +6406,25 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 # qt_row_layout.setContentsMargins(*full_element_pad)
                 if not element.Visible:
                     element.QT_TextEdit.setVisible(False)
-                qt_row_layout.addWidget(element.QT_TextEdit)
+                qt_row_layout.addWidget(element.QT_TextEdit, alignment=Qt.AlignVCenter)
             # ------------------------- OUTPUT MULTILINE placement element  ------------------------- #
             elif element_type == ELEM_TYPE_MULTILINE_OUTPUT:
                 element = element           # type: MultilineOutput
                 default_text = element.DefaultText
-                width, height = element_size
                 element.Widget = element.QT_TextBrowser = QTextBrowser()
                 element.QT_TextBrowser.setDisabled(False)
-                style = 'QTextBrowser {'
-                style += create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                style += '}'
-                element.QT_TextBrowser.setStyleSheet(style)
+
+                # === style ===
+                style = QtStyle('QTextBrowser')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
+                element.QT_TextBrowser.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
+
 
                 if element.AutoSizeText is False or element.Size[0] is not None:
                     if element_size[0] is not None:
@@ -6251,7 +6439,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 # qt_row_layout.setContentsMargins(*full_element_pad)
                 if not element.Visible:
                     element.QT_TextBrowser.setVisible(False)
-                qt_row_layout.addWidget(element.QT_TextBrowser)
+                qt_row_layout.addWidget(element.QT_TextBrowser, alignment=Qt.AlignVCenter)
             # -------------------------  INPUT CHECKBOX placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_CHECKBOX:
                 element = element           # type: Checkbox
@@ -6259,14 +6447,17 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element.QT_Checkbox.setChecked(element.InitialState)
                 if element.Disabled:
                     element.QT_Checkbox.setDisabled(True)
-                style = create_style_from_font(font)
 
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                element.QT_Checkbox.setStyleSheet(style)
+                # === style ===
+                style = QtStyle('QCheckBox')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                element.QT_Checkbox.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
+
 
                 if element.AutoSizeText is False or element.Size[0] is not None:
                     if element_size[0] is not None:
@@ -6280,7 +6471,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_Checkbox.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_Checkbox.setVisible(False)
-                qt_row_layout.addWidget(element.QT_Checkbox)
+                qt_row_layout.addWidget(element.QT_Checkbox, alignment=Qt.AlignVCenter)
               # -------------------------  PROGRESSBAR placement element  ------------------------- #
             elif element_type == ELEM_TYPE_PROGRESS_BAR:
                 element.Widget = element.QT_QProgressBar = QProgressBar()
@@ -6295,18 +6486,27 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element.QT_QProgressBar.setValue(element.StartValue)
                 if element.Orientation.lower().startswith('v'):
                     element.QT_QProgressBar.setOrientation(QtCore.Qt.Vertical)
-                style = ''
+
+                # === style ===
+                style = QtStyle('QProgressBar')
+                style_chunk = QtStyle('QProgressBar::chunk')
+                style['margin'] = full_element_pad
                 # style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
                 # style += 'border: {}px solid gray; '.format(border_depth)
                 if element.BarColor != (None, None):
                     if element.BarColor[0] is not None:
-                        style += "QProgressBar::chunk { background-color: %s; }"%element.BarColor[0]
-                    if element.BarColor[1] is not None:
-                        style += "QProgressBar { border: %spx solid grey; border-radius: 0px; background-color: %s; }"%(border_depth, element.BarColor[1])
-                    else:
-                        style += "QProgressBar { border: %spx solid grey; border-radius: 0px; background-color: %s}"%(border_depth, DEFAULT_PROGRESS_BAR_COLOR[1])
+                        style_chunk['background-color'] = element.BarColor[0]
 
-                element.QT_QProgressBar.setStyleSheet(style)
+                    style['border'] = '%spx solid grey' % border_depth
+                    style['border-radius'] = '0px'
+                    style['background-color'] = str(element.BarColor[1] \
+                                                if element.BarColor[1] is not None \
+                                                else DEFAULT_PROGRESS_BAR_COLOR[1])
+
+
+                element.QT_QProgressBar.setStyleSheet(style.build_css_string()+style_chunk.build_css_string())
+                element.qt_styles = (style, style_chunk)
+                # === style === end
 
                 element.QT_QProgressBar.setTextVisible(False)
                 if element.Tooltip:
@@ -6314,7 +6514,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 if not element.Visible:
                     element.QT_QProgressBar.setVisible(False)
 
-                qt_row_layout.addWidget(element.QT_QProgressBar)
+                qt_row_layout.addWidget(element.QT_QProgressBar, alignment=Qt.AlignVCenter)
             # -------------------------  INPUT RADIO placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_RADIO:
                 element = element           # type: Radio
@@ -6323,15 +6523,17 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element.QT_Radio_Button = qradio
                 if element.Disabled:
                     element.QT_Radio_Button.setDisabled(True)
-                if default_value:
-                    qradio.setChecked(True)
-                style = create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                element.QT_Radio_Button.setStyleSheet(style)
+                if default_value:    qradio.setChecked(True)
+
+                # === style ===
+                style = QtStyle('QRadioButton')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                element.QT_Radio_Button.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
                 if element.AutoSizeText is False or element.Size[0] is not None:
                     if element_size[0] is not None:
@@ -6356,7 +6558,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_Radio_Button.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_Radio_Button.setVisible(False)
-                qt_row_layout.addWidget(element.QT_Radio_Button)
+                qt_row_layout.addWidget(element.QT_Radio_Button, alignment=Qt.AlignVCenter)
                 # -------------------------  INPUT SPIN placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_SPIN:
                 # element.QT_Spinner = QSpinBox()
@@ -6367,16 +6569,17 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                         element.QT_Spinner.setValue(element.QT_Spinner.valueFromText(element.DefaultValue))
                     except:
                         pass
-                style = 'QSpinBox {'
-                style += create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                style += '}'
-                element.QT_Spinner.setStyleSheet(style)
+                # === style ===
+                style = QtStyle('QSpinBox')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
+                element.QT_Spinner.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
+
                 # element.QT_Spinner.setRange(element.Values[0], element.Values[1])
                 if not auto_size_text:
                     if element_size[0] is not None:
@@ -6392,28 +6595,24 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_Spinner.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_Spinner.setVisible(False)
-                qt_row_layout.addWidget(element.QT_Spinner)
+                qt_row_layout.addWidget(element.QT_Spinner, alignment=Qt.AlignVCenter)
             # -------------------------  OUTPUT placement element  ------------------------- #
             elif element_type == ELEM_TYPE_OUTPUT:
                 element = element       # type: Output
                 element.Widget = element.QT_TextBrowser = QTextBrowser()
                 element.QT_TextBrowser.setDisabled(False)
-                style = 'QTextBrowser {'
-                style += create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                # style += """QScrollBar:vertical {
-                #             border: none;
-                #             background:lightgray;
-                #             width:12px;
-                #             margin: 0px 0px 0px 0px;
-                #         } """
-                style += '}'
-                element.QT_TextBrowser.setStyleSheet(style)
+
+                # === style ===
+                style = QtStyle('QTextBrowser')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
+                # style += "QScrollBar:vertical {border: none; background:lightgray; width:12px; margin: 0px 0px 0px 0px; } "
+                element.QT_TextBrowser.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
                 if element.AutoSizeText is False or element.Size[0] is not None:
                     if element_size[0] is not None:
@@ -6427,7 +6626,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_TextBrowser.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_TextBrowser.setVisible(False)
-                qt_row_layout.addWidget(element.QT_TextBrowser)
+                qt_row_layout.addWidget(element.QT_TextBrowser, alignment=Qt.AlignVCenter)
             # -------------------------  IMAGE placement element  ------------------------- #
             elif element_type == ELEM_TYPE_IMAGE:
                 element = element           # type: Image
@@ -6451,17 +6650,19 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     pixmap.loadFromData(ba)
                     qlabel.setPixmap(pixmap)
 
-                style = ''
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                element.QT_QLabel.setStyleSheet(style)
-                if element.Tooltip:
-                    element.QT_QLabel.setToolTip(element.Tooltip)
+                # === style ===
+                style = QtStyle('QLabel')
+                style['margin'] = full_element_pad
+                element.QT_QLabel.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
+                if element.Tooltip:         element.QT_QLabel.setToolTip(element.Tooltip)
                 if element.ClickSubmits:
                     element.QT_QLabel.mousePressEvent = element.QtCallbackImageClicked
                 if not element.Visible:
                     element.QT_QLabel.setVisible(False)
-                qt_row_layout.addWidget(element.QT_QLabel)
+                qt_row_layout.addWidget(element.QT_QLabel, alignment=Qt.AlignVCenter)
             # -------------------------  Canvas placement element  ------------------------- #
             elif element_type == ELEM_TYPE_CANVAS:
                 width, height = element_size
@@ -6478,12 +6679,15 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element.QT_QGraphicsScene.setSceneRect(0,0,element.CanvasSize[0],element.CanvasSize[1])
                 element.QT_QGraphicsView.setScene(element.QT_QGraphicsScene)
 
-                style = Style('QGraphicsView')
-                style.add(background_color=(element.BackgroundColor, COLOR_SYSTEM_DEFAULT))
-                style.add(margin='{}px {}px {}px {}px'.format(*full_element_pad))
-                style.add(border='{}px solid gray '.format(border_depth))
+                # === style ===
+                style = QtStyle('QGraphicsView')
+                style['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray '.format(border_depth)
                 # print(f'style content = {style.content}')
-                element.QT_QGraphicsView.setStyleSheet(style.content)
+                element.QT_QGraphicsView.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
                 qgraphicsview.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
                 qgraphicsview.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -6492,7 +6696,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_QGraphicsView.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_QGraphicsView.setVisible(False)
-                qt_row_layout.addWidget(element.QT_QGraphicsView)
+                qt_row_layout.addWidget(element.QT_QGraphicsView, alignment=Qt.AlignVCenter)
             # -------------------------  MENUBAR placement element  ------------------------- #
             elif element_type == ELEM_TYPE_MENUBAR:
                 element = element           # type: Menu
@@ -6509,10 +6713,26 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                         baritem.setTitle(menu_entry[0])
                     element.QT_QMenuBar.addAction(baritem.menuAction())
                     AddMenuItem(baritem, menu_entry[1], element)
+                    # === style ===
+                    menu_style = QtStyle('QMenu')
+                    menu_style['font'] = create_style_from_font(font)
+                    if element.MenuItemTextColor is not None and element.MenuItemTextColor != COLOR_SYSTEM_DEFAULT:
+                        menu_style['color'] = element.MenuItemTextColor
+                    if element.MenuItemBackgroundColor is not None and element.MenuItemBackgroundColor != COLOR_SYSTEM_DEFAULT:
+                        menu_style['background-color'] = element.MenuItemBackgroundColor
+                    # style['margin'] = full_element_pad
+                    baritem.setStyleSheet(menu_style.build_css_string())
+                    # === style === end
+
+
                 if element.BackgroundColor != COLOR_SYSTEM_DEFAULT:
-                    style = Style('QMenuBar')
-                    style.add(background_color=(element.BackgroundColor))
-                    element.QT_QMenuBar.setStyleSheet(style.content)
+                    # === style ===
+                    style = QtStyle('QMenuBar')
+                    style['background_color'] = (element.BackgroundColor, COLOR_SYSTEM_DEFAULT)
+                    element.QT_QMenuBar.setStyleSheet(style.build_css_string())
+                    element.qt_styles = (style,)
+                    # === style === end
+
                 if not element.Visible:
                     element.QT_QMenuBar.setVisible(False)
                 toplevel_win.QT_QMainWindow.setMenuBar(element.QT_QMenuBar)
@@ -6520,16 +6740,22 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
             elif element_type == ELEM_TYPE_BUTTONMENU:
                 btext = element.ButtonText
                 element.Widget = element.QT_QPushButton = QPushButton(btext)
-                style = create_style_from_font(font)
+
+                # === style ===
+                style = QtStyle('QPushButton')
+                style['font'] = create_style_from_font(font)
                 if element.TextColor is not None and element.TextColor != COLOR_SYSTEM_DEFAULT:
-                    style += 'color: %s;' % element.TextColor
+                    style['color'] = element.TextColor
                 if element.BackgroundColor is not None and element.BackgroundColor != COLOR_SYSTEM_DEFAULT:
-                    style += 'background-color: %s;' % element.BackgroundColor
+                    style['background-color'] = element.BackgroundColor
                 if element.BorderWidth == 0:
-                    style += 'border: none;'
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                # style += 'border: {}px solid gray; '.format(border_depth)
-                element.QT_QPushButton.setStyleSheet(style)
+                    style['border'] = 'none'
+                style['margin'] = full_element_pad
+                element.QT_QPushButton.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
+
+
                 if (element.AutoSizeButton is False or toplevel_win.AutoSizeButtons is False or element.Size[0] is not None) and element.ImageData is None:
                     if element_size[0] is not None:
                         element.QT_QPushButton.setFixedWidth(element_size[0])
@@ -6556,46 +6782,128 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 qmenu.setTitle(menu_def[0])
                 AddMenuItem(qmenu, menu_def[1], element)
 
+                # === style ===
+                menu_style = QtStyle('QMenu')
+                menu_style['font'] = create_style_from_font(font)
+                if element.TextColor is not None and element.TextColor != COLOR_SYSTEM_DEFAULT:
+                    menu_style['color'] = element.TextColor
+                if element.BackgroundColor is not None and element.BackgroundColor != COLOR_SYSTEM_DEFAULT:
+                    menu_style['background-color'] = element.BackgroundColor
+                # style['margin'] = full_element_pad
+                qmenu.setStyleSheet(menu_style.build_css_string())
+                # element.qt_styles = (style,)
+                # === style === end
+
                 element.QT_QPushButton.setMenu(qmenu)
                 if element.Tooltip:
                     element.QT_QPushButton.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_QPushButton.setVisible(False)
-                qt_row_layout.addWidget(element.QT_QPushButton)
+                qt_row_layout.addWidget(element.QT_QPushButton, alignment=Qt.AlignVCenter)
             # -------------------------  Frame placement element  ------------------------- #
             elif element_type == ELEM_TYPE_FRAME:
+                element = element       # type: Frame
                 element.Widget = column_widget = QGroupBox()
                 element.QT_QGroupBox = column_widget
-                style = create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                # style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                # style += 'border: {}px solid gray; '.format(border_depth)
-                column_widget.setStyleSheet(style)
+
+                # === style ===
+                style = QtStyle('QGroupBox')
+                # style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                # style['origin'] = 'margin'
+                style['font'] = create_style_from_font(font)
+                if element.FrameColor is not None:
+                    style['border'] = '{}px solid {} '.format(border_depth, element.FrameColor)
+                else:
+                    style['border'] = '{}px solid {} '.format(border_depth, 'gainsboro')    # default to a light gray
+
+
+                # style['padding'] = (10,10,10,10)
+                # style['margin'] = full_element_pad
+                # style['padding'] = (0,15,15,15)
+                # style['padding'] = (10,10,10,10)
+                style['margin-top'] = '10px'
+                # style['top'] = '60px'
+                # style['margin'] = (0,0,0,0)
+                style['origin'] = 'margin'
+
+                style_title = QtStyle('QGroupBox::title')
+                # style_title['padding'] =  (0,5,0,5)
+                style_title['margin'] = (0,0,0,0)
+
+                style_title['left'] =  '15px'
+                # style_title['margin-top'] =  '-20px'
+                # style_title['top'] =  '20px'
+                style_title['subcontrol-origin'] = 'margin'
+                # style_title['subcontrol-origin'] = 'border'
+
+                # style_title['subcontrol-origin'] = 'padding'
+                style_title['subcontrol-position'] = 'top left'
+
+                column_widget.setStyleSheet(str(style)+str(style_title))
+                # column_widget.setStyleSheet(str(style))
+                # print(element.Widget.styleSheet())
+                element.qt_styles = (style, )
+                # === style === end
 
                 column_widget.setTitle(element.Title)
-                column_layout = QFormLayout()
-                column_vbox = QVBoxLayout()
+
+                column_layout, column_vbox = QFormLayout(), QVBoxLayout()
                 PackFormIntoFrame(element, column_layout, toplevel_win)
                 column_vbox.addLayout(column_layout)
                 column_widget.setLayout(column_vbox)
+
+                # Add a padding groupbox
+                pad_layout, pad_vbox = QFormLayout(), QVBoxLayout()
+                pad_groupbox = QGroupBox()
+
+                pad_vbox.addLayout(pad_layout)
+                pad_groupbox.setLayout(pad_vbox)
+                pad_vbox.addWidget(column_widget)
+
+                pad_layout.setSpacing(0)
+                pad_vbox.setSpacing(0)
+                # === style ===
+                style = QtStyle('QGroupBox')
+                # style['font'] = create_style_from_font(font)
+                style['border'] = '0px'
+                style['margin'] = (0,0,0,0)
+                # style['margin'] = full_element_pad
+
+                style['padding'] = (0,0,0,0)
+                style['margin-top'] = '0px'
+                style['origin'] = 'content'
+                style_title = QtStyle('QGroupBox::title')
+                style_title['subcontrol-origin'] = 'content'
+
+                style_title['padding'] =  (0,0,0,0)
+                style_title['margin'] = (0,0,0,0)
+                pad_groupbox.setStyleSheet(str(style)+str(style_title))
+                # === style === end
+
+
                 if element.Tooltip:
                     column_widget.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_QGroupBox.setVisible(False)
-                qt_row_layout.addWidget(column_widget)
+
+                qt_row_layout.addWidget(pad_groupbox)
+                # qt_row_layout.addWidget(column_widget)
             # -------------------------  Tab placement element  ------------------------- #
             elif element_type == ELEM_TYPE_TAB:
                 element.Widget = tab_widget = QWidget()
                 element.QT_QWidget = tab_widget
                 # tab_widget.setFrameShape(QtWidgets.QFrame.NoFrame)
-                style = create_style_from_font(font)
+
+                # === style ===
+                style = QtStyle('QTabWidget')
+                style['font'] = create_style_from_font(font)
                 if element.BackgroundColor is not None:
                     # style += 'background-color: %s;' % element.BackgroundColor
                     # style += 'QTabWidget > QWidget > QWidget {background: %s;}'% element.BackgroundColor
-                    style += 'QTabWidget::pane {background: %s;}'% element.BackgroundColor
+                    style['background-color'] = element.BackgroundColor
+                    style.my_anchor = '::pane'
                     # style += 'background-color: %s;' % element.BackgroundColor
                     tab_widget.setAutoFillBackground(True)
                     palette = tab_widget.palette()
@@ -6603,12 +6911,13 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     tab_widget.setPalette(palette)
 
                 # style += 'border: {}px solid gray; '.format(border_depth)
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                # print(f'Tab widget style {style}')
-                tab_widget.setStyleSheet(style)
+                style['margin'] = full_element_pad
+                tab_widget.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
-                column_layout = QFormLayout()
-                column_vbox = QVBoxLayout()
+
+                column_layout, column_vbox = QFormLayout(), QVBoxLayout()
 
                 PackFormIntoFrame(element, column_layout, toplevel_win)
 
@@ -6624,14 +6933,23 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 element = element       # type:TabGroup
                 element.Widget = element.QT_QTabWidget = qtab =QTabWidget()
 
-                style = qtab.styleSheet()
+                # === style ===
+                style = QtStyle('QTabWidget')
+                # print(f'qtab.styleSheet() -> {qtab.styleSheet()}')
+                # style = qtab.styleSheet() # FIXv2
                 if element.SelectedTitleColor not in (None, COLOR_SYSTEM_DEFAULT):
-                    style += 'QTabBar::tab:selected {background: %s;}'%element.SelectedTitleColor
+                    style.my_anchor = '::tab:selected'
+                    style['background'] = element.SelectedTitleColor
                 if element.BackgroundColor not in (None, COLOR_SYSTEM_DEFAULT):
-                    style += 'QTabBar::tab {background: %s;}'% element.BackgroundColor
+                    style.my_anchor = '::tab'
+                    style['background'] = element.BackgroundColor
                 if element.TextColor not in (None, COLOR_SYSTEM_DEFAULT):
-                    style += 'QTabBar::tab {color: %s;}'%element.TextColor
-                qtab.setStyleSheet(style)
+                    style.my_anchor = '::tab'
+                    style['color'] = element.TextColor
+                style['margin'] = full_element_pad
+                qtab.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
                 if element.TabLocation is not None:
                     position_dict = {'left': QtWidgets.QTabWidget.TabPosition.West, 'right': QtWidgets.QTabWidget.TabPosition.East, 'top': QtWidgets.QTabWidget.TabPosition.North, 'bottom': QtWidgets.QTabWidget.TabPosition.South, 'lefttop': QtWidgets.QTabWidget.TabPosition.North,
@@ -6643,7 +6961,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                         print('Bad tab position specified {}', element.TabLocation)
                 PackFormIntoFrame(element, element.ParentForm.QFormLayout, toplevel_win)
 
-                qt_row_layout.addWidget(element.QT_QTabWidget)
+                qt_row_layout.addWidget(element.QT_QTabWidget, alignment=Qt.AlignVCenter)
                 if not element.Visible:
                     element.QT_QTabWidget.setVisible(False)
 
@@ -6653,22 +6971,20 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
             elif element_type == ELEM_TYPE_INPUT_SLIDER:
                 element = element           # type: Slider
                 element.Widget = element.QT_Slider = QSlider()
-                if element.Orientation.startswith('h'):
-                    element.QT_Slider.setOrientation(Qt.Horizontal)
-                else:
-                    element.QT_Slider.setOrientation(Qt.Vertical)
-                if element.Disabled:
-                    element.QT_Slider.setDisabled(True)
-                style = create_style_from_font(font)
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                element.QT_Slider.setStyleSheet(style)
+                element.QT_Slider.setOrientation(Qt.Horizontal if element.Orientation.startswith('h') else Qt.Vertical)
+                if element.Disabled: element.QT_Slider.setDisabled(True)
 
-                element.QT_Slider.setMinimum(element.Range[0])
-                element.QT_Slider.setMaximum(element.Range[1])
+                # === style ===
+                style = QtStyle('QSlider')
+                style['font'] = create_style_from_font(font)
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
+                element.QT_Slider.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
+                element.QT_Slider.setMinimum(element.Range[0]); element.QT_Slider.setMaximum(element.Range[1])
                 position = QSlider.TicksBothSides
                 if element.Relief == RELIEF_TICK_POSITION_NO_TICKS:
                     position = QSlider.NoTicks
@@ -6686,13 +7002,11 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
 
                 if element.TickInterval is not None:
                     element.QT_Slider.setTickInterval(element.TickInterval)
+                if element_size[0] is not None: element.QT_Slider.setFixedWidth(element_size[0])
+                if element_size[1] is not None: element.QT_Slider.setFixedHeight(element_size[1])
                 if element.Resolution is not None:
                     element.QT_Slider.setSingleStep(element.Resolution)
                     element.QT_Slider.setPageStep(element.Resolution)
-                if element_size[0] is not None:
-                    element.QT_Slider.setFixedWidth(element_size[0])
-                if element_size[1] is not None:
-                    element.QT_Slider.setFixedHeight(element_size[1])
                 element.QT_Slider.setValue(element.DefaultValue)
 
                 if element.ChangeSubmits:
@@ -6701,35 +7015,29 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_Slider.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_Slider.setVisible(False)
-                qt_row_layout.addWidget(element.QT_Slider)
+                qt_row_layout.addWidget(element.QT_Slider, alignment=Qt.AlignVCenter)
             # -------------------------  DIAL placement element  ------------------------- #
             elif element_type == ELEM_TYPE_INPUT_DIAL:
                 element.Widget = element.QT_Dial = qdial = QDial()
 
-                style = create_style_from_font(font)
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                element.QT_Dial.setStyleSheet(style)
+                # === style ===
+                style = QtStyle('QDial')
+                style['font'] = create_style_from_font(font)
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
+                element.QT_Dial.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
+                # === style === end
 
-                if element.Disabled:
-                    element.QT_Dial.setDisabled(True)
-
-                element.QT_Dial.setMinimum(element.Range[0])
-                element.QT_Dial.setMaximum(element.Range[1])
-
-                qdial.setNotchesVisible(True)
-                if element.TickInterval is not None:
-                    qdial.setNotchTarget(element.TickInterval)
-                if element.Resolution is not None:
-                    element.QT_Dial.setSingleStep(element.Resolution)
-                if element_size[0] is not None:
-                    element.QT_Dial.setFixedWidth(element_size[0])
-                if element_size[1] is not None:
-                    element.QT_Dial.setFixedHeight(element_size[1])
+                if element.Disabled: element.QT_Dial.setDisabled(True)
+                element.QT_Dial.setMinimum(element.Range[0]); element.QT_Dial.setMaximum(element.Range[1])
                 element.QT_Dial.setValue(element.DefaultValue)
-
+                qdial.setNotchesVisible(True)
+                if element.TickInterval is not None:    qdial.setNotchTarget(element.TickInterval)
+                if element.Resolution is not None:      element.QT_Dial.setSingleStep(element.Resolution)
+                if element_size[0] is not None:         element.QT_Dial.setFixedWidth(element_size[0])
+                if element_size[1] is not None:         element.QT_Dial.setFixedHeight(element_size[1])
                 if element.ChangeSubmits:
                     element.QT_Dial.valueChanged.connect(element._QtCallbackValueChanged)
                 if element.Tooltip:
@@ -6737,7 +7045,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 # qt_row_layout.setContentsMargins(*full_element_pad)
                 if not element.Visible:
                     element.QT_Dial.setVisible(False)
-                qt_row_layout.addWidget(element.QT_Dial)
+                qt_row_layout.addWidget(element.QT_Dial, alignment=Qt.AlignVCenter)
             # -------------------------  Stretch placement element  ------------------------- #
             elif element_type == ELEM_TYPE_STRETCH:
                 element = element       # type: Stretch
@@ -6749,29 +7057,27 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 if element.NumRows is not None:
                     element.QT_TableWidget.setFixedHeight(element.NumRows*35+25)
                 # element.QT_TableWidget = QTableWidget()
-                style = ''
-                if element.HeaderBackgroundColor is not None:
-                    style += 'QHeaderView::section {background-color: %s;}\n' % element.HeaderBackgroundColor
-                if element.HeaderTextColor is not None:
-                    style += 'QHeaderView::section {color: %s;}\n' % element.HeaderTextColor
-                style += 'QTableWidget {'
-                style += create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;\n' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
+                # === style ===
 
+                style = QtStyle('QTableWidget')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
 
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                style += '}'
-                style += """QScrollBar:vertical {
-                            border: none;
-                            background:lightgray;
-                            width:12px;
-                            margin: 0px 0px 0px 0px;
-                        } """
-                element.QT_TableWidget.setStyleSheet(style)
+                # more css: ScrollBar
+                style.append_css_to_end.append(" QScrollBar:vertical {border: none; background:lightgray; width:12px; margin: 0px 0px 0px 0px; } ")
+                # more css: QHeaderView
+                header_style = QtStyle('QHeaderView::section')
+                header_style['font'] = create_style_from_font(element.HeaderFont if element.HeaderFont is not None else font)
+                header_style['background-color'] = element.HeaderBackgroundColor
+                header_style['color'] = element.HeaderTextColor
+
+                element.QT_TableWidget.setStyleSheet(style.build_css_string() + header_style.build_css_string())
+                element.qt_styles = (style, header_style)
+                # === style === end
+
                 if element.ChangeSubmits:
                     element.QT_TableWidget.itemSelectionChanged.connect(element._QtCallbackCellActivated)
                 element.QT_TableWidget.setRowCount(len(element.Values))
@@ -6791,7 +7097,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                 if not element.Visible:
                     element.QT_TableWidget.setVisible(False)
 
-                qt_row_layout.addWidget(element.QT_TableWidget)
+                qt_row_layout.addWidget(element.QT_TableWidget, alignment=Qt.AlignVCenter)
             # -------------------------  Tree placement element  ------------------------- #
             elif element_type == ELEM_TYPE_TREE:
                 element = element   # type: Tree
@@ -6823,11 +7129,10 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     # treeview.column(heading, width=width * CharWidthInPixels(), anchor=anchor)
                 def add_treeview_data(node, widget):
                     # print(f'Inserting {node.key} under parent {node.parent}')
+                    child = widget
                     if node != element.TreeData.root_node:
                         child = QTreeWidgetItem(widget)
                         child.setText(0, str(node.text))
-                    else:
-                        child = widget
                     # if node.key != '':
                     # child.setData(0,0,node.values)
                     if type(node.icon) is bytes:
@@ -6848,22 +7153,25 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
 
                 add_treeview_data(element.TreeData.root_node, element.QT_QTreeWidget)
 
-                style = 'QTreeWidget {'
-                style += create_style_from_font(font)
-                if element.TextColor is not None:
-                    style += 'color: %s;\n' % element.TextColor
-                if element.BackgroundColor is not None:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                style += 'border: {}px solid gray; '.format(border_depth)
-                style += '}'
-                style += """QScrollBar:vertical {              
-                            border: none;
-                            background:lightgray;
-                            width:12px;
-                            margin: 0px 0px 0px 0px;
-                        } """
-                element.QT_QTreeWidget.setStyleSheet(style)
+                # === style ===
+                style = QtStyle('QTreeWidget')
+                style['font'] = create_style_from_font(font)
+                if element.TextColor is not None:       style['color'] = element.TextColor
+                if element.BackgroundColor is not None: style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                style['border'] = '{}px solid gray'.format(border_depth)
+                style.append_css_to_end.append(" QScrollBar:vertical {border: none; background:lightgray; width:12px; margin: 0px 0px 0px 0px; } ")
+
+                header_style = QtStyle('QHeaderView::section')
+                header_style['font'] = create_style_from_font(element.HeaderFont if element.HeaderFont is not None else font)
+                header_style['background-color'] = element.HeaderBackgroundColor
+                header_style['color'] = element.HeaderTextColor
+
+                element.QT_QTreeWidget.setStyleSheet(style.build_css_string() + header_style.build_css_string())
+                element.qt_styles = (style, header_style)
+                # === style === end
+
+
                 if element.ChangeSubmits:
                     element.QT_QTreeWidget.itemSelectionChanged.connect(element._QtCallbackCellActivated)
 
@@ -6874,7 +7182,7 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                     element.QT_QTreeWidget.setToolTip(element.Tooltip)
                 if not element.Visible:
                     element.QT_QTreeWidget.setVisible(False)
-                qt_row_layout.addWidget(element.QT_QTreeWidget)
+                qt_row_layout.addWidget(element.QT_QTreeWidget, alignment=Qt.AlignVCenter)
             # -------------------------  Separator placement element  ------------------------- #
             elif element_type == ELEM_TYPE_SEPARATOR:
                 element = element           # type: HorizontalSeparator
@@ -6884,23 +7192,28 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
                         element.QT_Label.setFixedWidth(element_size[0])
                     if element_size[1] is not None:
                         element.QT_Label.setFixedHeight(element_size[1])
-                style = ''
+                style = QtStyle('QLabel')
                 if element.TextColor is not None and element.TextColor != COLOR_SYSTEM_DEFAULT:
-                    style += 'color: %s;' % element.TextColor
+                    style['color'] = element.TextColor
                 if element.BackgroundColor is not None and element.BackgroundColor != COLOR_SYSTEM_DEFAULT:
-                    style += 'background-color: %s;' % element.BackgroundColor
-                style += 'margin: {}px {}px {}px {}px;'.format(*full_element_pad)
-                element.QT_Label.setStyleSheet(style)
+                    style['background-color'] = element.BackgroundColor
+                style['margin'] = full_element_pad
+                element.QT_Label.setStyleSheet(style.build_css_string())
+                element.qt_styles = (style,)
 
                 qlabel.setFrameStyle(QFrame.VLine if element.Orientation[0] =='v' else QFrame.HLine)
 
-                qt_row_layout.addWidget(element.QT_Label)
+                qt_row_layout.addWidget(element.QT_Label, alignment=Qt.AlignVCenter)
 
-                pass
+            # Align the Element on center in the row
+            # try:
+            #     element.Widget.setAlignment(element.Widget.alignment() | Qt.AlignVCenter)
+            # except Exception as e:
+            #     print(f'* Alignment error {e}')
 
         # ............................DONE WITH ROW pack the row of widgets ..........................#
-        qt_row_layout.setSpacing(toplevel_win.ElementPadding[0])
-        containing_frame.setSpacing(toplevel_win.ElementPadding[1])
+        qt_row_layout.setSpacing(0)
+        containing_frame.setSpacing(0)
         containing_frame.addRow('', qt_row_layout)
 
         # done with row, pack the row of widgets
@@ -6910,7 +7223,6 @@ def PackFormIntoFrame(container_elem, containing_frame, toplevel_win):
 
 def ConvertFlexToTK(window):
     InitializeResults(window)
-    pass
     master = 000000
     PackFormIntoFrame(window, window.QFormLayout, window)
     # ....................................... DONE creating and laying out window ..........................#
@@ -6965,8 +7277,8 @@ def stop_timer(timer):
 def StartupTK(window):
     """
     Does the building of the window with all the widgets
-    :param my_flex_form: you window object
-    :type my_flex_form: (Window)
+    :param window: you window object
+    :type window: (Window)
     """
 
     global using_pyqt5
@@ -7026,12 +7338,26 @@ def StartupTK(window):
     #     window.QTWindow.setWindowFlags(Qt.WindowStaysOnTopHint)
 
 
-    # style = 'QMainWindow {'
-    # style = window.QT_QMainWindow.styleSheet()
+    style = QtStyle('QMainWindow')
     if window.BackgroundColor is not None and window.BackgroundColor != COLOR_SYSTEM_DEFAULT:
-        style = 'background-color: %s;' % window.BackgroundColor
-        # style += '}'
-        window.QT_QMainWindow.setStyleSheet(style)
+        style['background-color'] = window.BackgroundColor
+        window.QT_QMainWindow.setStyleSheet(str(style))
+
+    if window.margins != (None, None):
+        margin_left = margin_right = margin_top = margin_bottom = 0
+        if isinstance(window.margins[0], tuple):
+            margin_left = window.margins[0][0]
+            margin_right = window.margins[0][1]
+        elif isinstance(window.margins[0], int):
+            margin_left = window.margins[0]
+            margin_right = window.margins[0]
+        if isinstance(window.margins[1], tuple):
+            margin_top = window.margins[1][0]
+            margin_bottom = window.margins[1][1]
+        elif isinstance(window.margins[1], int):
+            margin_top = window.margins[1]
+            margin_bottom = window.margins[1]
+        window.QT_QMainWindow.setContentsMargins(margin_left, margin_top, margin_right, margin_bottom)
 
     if window.BackgroundImage is not None:
         qlabel = QLabel(window.QTWindow)
@@ -7934,994 +8260,160 @@ def SetOptions(icon=None, button_color=None, element_size=(None, None), button_e
 # Predefined settings that will change the colors and styles #
 # of the elements.                                           #
 ##############################################################
-LOOK_AND_FEEL_TABLE = {'SystemDefault':
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
+LOOK_AND_FEEL_TABLE = {
+"SystemDefault": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"SystemDefaultForReal": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": COLOR_SYSTEM_DEFAULT,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"SystemDefault1": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": COLOR_SYSTEM_DEFAULT,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"Material1": {"BACKGROUND": "#E3F2FD","TEXT": "#000000","INPUT": "#86A8FF","TEXT_INPUT": "#000000","SCROLL": "#86A8FF","BUTTON": ("#FFFFFF", "#5079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"Material2": {"BACKGROUND": "#FAFAFA","TEXT": "#000000","INPUT": "#004EA1","TEXT_INPUT": "#FFFFFF","SCROLL": "#5EA7FF","BUTTON": ("#FFFFFF", "#0079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"Reddit": {"BACKGROUND": "#ffffff","TEXT": "#1a1a1b","INPUT": "#dae0e6","TEXT_INPUT": "#222222","SCROLL": "#a5a4a4","BUTTON": ("#FFFFFF", "#0079d3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#ff5414","ACCENT2": "#33a8ff","ACCENT3": "#dbf0ff",},
+"Topanga": {"BACKGROUND": "#282923","TEXT": "#E7DB74","INPUT": "#393a32","TEXT_INPUT": "#E7C855","SCROLL": "#E7C855","BUTTON": ("#E7C855", "#284B5A"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#c15226","ACCENT2": "#7a4d5f","ACCENT3": "#889743",},
+"GreenTan": {"BACKGROUND": "#9FB8AD","TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": "#F7F3EC","TEXT_INPUT": "#000000","SCROLL": "#F7F3EC","BUTTON": ("#FFFFFF", "#475841"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Dark": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen": {"BACKGROUND": "#B7CECE","TEXT": "#000000","INPUT": "#FDFFF7","TEXT_INPUT": "#000000","SCROLL": "#FDFFF7","BUTTON": ("#FFFFFF", "#658268"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"ACCENT1": "#76506d","ACCENT2": "#5148f1","ACCENT3": "#0a1c84","PROGRESS_DEPTH": 0,},
+"Dark2": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#FFFFFF","TEXT_INPUT": "#000000","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Black": {"BACKGROUND": "#000000","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#000000", "#FFFFFF"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Tan": {"BACKGROUND": "#fdf6e3","TEXT": "#268bd1","INPUT": "#eee8d5","TEXT_INPUT": "#6c71c3","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063542"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"TanBlue": {"BACKGROUND": "#e5dece","TEXT": "#063289","INPUT": "#f9f8f4","TEXT_INPUT": "#242834","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkTanBlue": {"BACKGROUND": "#242834","TEXT": "#dfe6f8","INPUT": "#97755c","TEXT_INPUT": "#FFFFFF","SCROLL": "#a9afbb","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkAmber": {"BACKGROUND": "#2c2825","TEXT": "#fdcb52","INPUT": "#705e52","TEXT_INPUT": "#fdcb52","SCROLL": "#705e52","BUTTON": ("#000000", "#fdcb52"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue": {"BACKGROUND": "#1a2835","TEXT": "#d1ecff","INPUT": "#335267","TEXT_INPUT": "#acc2d0","SCROLL": "#1b6497","BUTTON": ("#000000", "#fafaf8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Reds": {"BACKGROUND": "#280001","TEXT": "#FFFFFF","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#763e00","BUTTON": ("#000000", "#daad28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Green": {"BACKGROUND": "#82a459","TEXT": "#000000","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#e3ecf3","BUTTON": ("#FFFFFF", "#517239"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BluePurple": {"BACKGROUND": "#A5CADD","TEXT": "#6E266E","INPUT": "#E0F5FF","TEXT_INPUT": "#000000","SCROLL": "#E0F5FF","BUTTON": ("#FFFFFF", "#303952"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Purple": {"BACKGROUND": "#B0AAC2","TEXT": "#000000","INPUT": "#F2EFE8","SCROLL": "#F2EFE8","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#C2D4D8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BlueMono": {"BACKGROUND": "#AAB6D3","TEXT": "#000000","INPUT": "#F1F4FC","SCROLL": "#F1F4FC","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#7186C7"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"GreenMono": {"BACKGROUND": "#A8C1B4","TEXT": "#000000","INPUT": "#DDE0DE","SCROLL": "#E3E3E3","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#6D9F85"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BrownBlue": {"BACKGROUND": "#64778d","TEXT": "#FFFFFF","INPUT": "#f0f3f7","SCROLL": "#A6B2BE","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#283b5b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"BrightColors": {"BACKGROUND": "#b4ffb4","TEXT": "#000000","INPUT": "#ffff64","SCROLL": "#ffb482","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#ffa0dc"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"NeutralBlue": {"BACKGROUND": "#92aa9d","TEXT": "#000000","INPUT": "#fcfff6","SCROLL": "#fcfff6","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#d0dbbd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Kayak": {"BACKGROUND": "#a7ad7f","TEXT": "#000000","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#5d907d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"SandyBeach": {"BACKGROUND": "#efeccb","TEXT": "#012f2f","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#012f2f","BUTTON": ("#FFFFFF", "#046380"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"TealMono": {"BACKGROUND": "#a8cfdd","TEXT": "#000000","INPUT": "#dfedf2","SCROLL": "#dfedf2","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#183440"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"Default": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"Default1": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": COLOR_SYSTEM_DEFAULT,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"DefaultNoMoreNagging": {"BACKGROUND": COLOR_SYSTEM_DEFAULT,"TEXT": COLOR_SYSTEM_DEFAULT,"INPUT": COLOR_SYSTEM_DEFAULT,"TEXT_INPUT": COLOR_SYSTEM_DEFAULT,"SCROLL": COLOR_SYSTEM_DEFAULT,"BUTTON": OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,"PROGRESS": COLOR_SYSTEM_DEFAULT,"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"LightBlue": {"BACKGROUND": "#E3F2FD","TEXT": "#000000","INPUT": "#86A8FF","TEXT_INPUT": "#000000","SCROLL": "#86A8FF","BUTTON": ("#FFFFFF", "#5079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"LightGrey": {"BACKGROUND": "#FAFAFA","TEXT": "#000000","INPUT": "#004EA1","TEXT_INPUT": "#FFFFFF","SCROLL": "#5EA7FF","BUTTON": ("#FFFFFF", "#0079D3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 0,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#FF0266","ACCENT2": "#FF5C93","ACCENT3": "#C5003C",},
+"LightGrey1": {"BACKGROUND": "#ffffff","TEXT": "#1a1a1b","INPUT": "#dae0e6","TEXT_INPUT": "#222222","SCROLL": "#a5a4a4","BUTTON": ("#FFFFFF", "#0079d3"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#ff5414","ACCENT2": "#33a8ff","ACCENT3": "#dbf0ff",},
+"DarkBrown": {"BACKGROUND": "#282923","TEXT": "#E7DB74","INPUT": "#393a32","TEXT_INPUT": "#E7C855","SCROLL": "#E7C855","BUTTON": ("#E7C855", "#284B5A"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"ACCENT1": "#c15226","ACCENT2": "#7a4d5f","ACCENT3": "#889743",},
+"LightGreen1": {"BACKGROUND": "#9FB8AD","TEXT": "#000000","INPUT": "#F7F3EC","TEXT_INPUT": "#000000","SCROLL": "#F7F3EC","BUTTON": ("#FFFFFF", "#475841"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen2": {"BACKGROUND": "#B7CECE","TEXT": "#000000","INPUT": "#FDFFF7","TEXT_INPUT": "#000000","SCROLL": "#FDFFF7","BUTTON": ("#FFFFFF", "#658268"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"ACCENT1": "#76506d","ACCENT2": "#5148f1","ACCENT3": "#0a1c84","PROGRESS_DEPTH": 0,},
+"DarkGrey1": {"BACKGROUND": "#404040","TEXT": "#FFFFFF","INPUT": "#FFFFFF","TEXT_INPUT": "#000000","SCROLL": "#707070","BUTTON": ("#FFFFFF", "#004F00"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlack": {"BACKGROUND": "#000000","TEXT": "#FFFFFF","INPUT": "#4D4D4D","TEXT_INPUT": "#FFFFFF","SCROLL": "#707070","BUTTON": ("#000000", "#FFFFFF"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown": {"BACKGROUND": "#fdf6e3","TEXT": "#268bd1","INPUT": "#eee8d5","TEXT_INPUT": "#6c71c3","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063542"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown1": {"BACKGROUND": "#e5dece","TEXT": "#063289","INPUT": "#f9f8f4","TEXT_INPUT": "#242834","SCROLL": "#eee8d5","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue1": {"BACKGROUND": "#242834","TEXT": "#dfe6f8","INPUT": "#97755c","TEXT_INPUT": "#FFFFFF","SCROLL": "#a9afbb","BUTTON": ("#FFFFFF", "#063289"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBrown1": {"BACKGROUND": "#2c2825","TEXT": "#fdcb52","INPUT": "#705e52","TEXT_INPUT": "#fdcb52","SCROLL": "#705e52","BUTTON": ("#000000", "#fdcb52"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue2": {"BACKGROUND": "#1a2835","TEXT": "#d1ecff","INPUT": "#335267","TEXT_INPUT": "#acc2d0","SCROLL": "#1b6497","BUTTON": ("#000000", "#fafaf8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBrown2": {"BACKGROUND": "#280001","TEXT": "#FFFFFF","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#763e00","BUTTON": ("#000000", "#daad28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGreen": {"BACKGROUND": "#82a459","TEXT": "#000000","INPUT": "#d8d584","TEXT_INPUT": "#000000","SCROLL": "#e3ecf3","BUTTON": ("#FFFFFF", "#517239"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBlue1": {"BACKGROUND": "#A5CADD","TEXT": "#6E266E","INPUT": "#E0F5FF","TEXT_INPUT": "#000000","SCROLL": "#E0F5FF","BUTTON": ("#FFFFFF", "#303952"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightPurple": {"BACKGROUND": "#B0AAC2","TEXT": "#000000","INPUT": "#F2EFE8","SCROLL": "#F2EFE8","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#C2D4D8"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBlue2": {"BACKGROUND": "#AAB6D3","TEXT": "#000000","INPUT": "#F1F4FC","SCROLL": "#F1F4FC","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#7186C7"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen3": {"BACKGROUND": "#A8C1B4","TEXT": "#000000","INPUT": "#DDE0DE","SCROLL": "#E3E3E3","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#6D9F85"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue3": {"BACKGROUND": "#64778d","TEXT": "#FFFFFF","INPUT": "#f0f3f7","SCROLL": "#A6B2BE","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#283b5b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen4": {"BACKGROUND": "#b4ffb4","TEXT": "#000000","INPUT": "#ffff64","SCROLL": "#ffb482","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#ffa0dc"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightGreen5": {"BACKGROUND": "#92aa9d","TEXT": "#000000","INPUT": "#fcfff6","SCROLL": "#fcfff6","TEXT_INPUT": "#000000","BUTTON": ("#000000", "#d0dbbd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown2": {"BACKGROUND": "#a7ad7f","TEXT": "#000000","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#5d907d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown3": {"BACKGROUND": "#efeccb","TEXT": "#012f2f","INPUT": "#e6d3a8","SCROLL": "#e6d3a8","TEXT_INPUT": "#012f2f","BUTTON": ("#FFFFFF", "#046380"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBlue3": {"BACKGROUND": "#a8cfdd","TEXT": "#000000","INPUT": "#dfedf2","SCROLL": "#dfedf2","TEXT_INPUT": "#000000","BUTTON": ("#FFFFFF", "#183440"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"LightBrown4": {"BACKGROUND": "#d7c79e","TEXT": "#a35638","INPUT": "#9dab86","TEXT_INPUT": "#000000","SCROLL": "#a35638","BUTTON": ("#FFFFFF", "#a35638"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#a35638", "#9dab86", "#e08f62", "#d7c79e"],},
+"DarkTeal": {"BACKGROUND": "#003f5c","TEXT": "#fb5b5a","INPUT": "#bc4873","TEXT_INPUT": "#FFFFFF","SCROLL": "#bc4873","BUTTON": ("#FFFFFF", "#fb5b5a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#003f5c", "#472b62", "#bc4873", "#fb5b5a"],},
+"DarkPurple": {"BACKGROUND": "#472b62","TEXT": "#fb5b5a","INPUT": "#bc4873","TEXT_INPUT": "#FFFFFF","SCROLL": "#bc4873","BUTTON": ("#FFFFFF", "#472b62"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#003f5c", "#472b62", "#bc4873", "#fb5b5a"],},
+"LightGreen6": {"BACKGROUND": "#eafbea","TEXT": "#1f6650","INPUT": "#6f9a8d","TEXT_INPUT": "#FFFFFF","SCROLL": "#1f6650","BUTTON": ("#FFFFFF", "#1f6650"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#1f6650", "#6f9a8d", "#ea5e5e", "#eafbea"],},
+"DarkGrey2": {"BACKGROUND": "#2b2b28","TEXT": "#f8f8f8","INPUT": "#f1d6ab","TEXT_INPUT": "#000000","SCROLL": "#f1d6ab","BUTTON": ("#2b2b28", "#e3b04b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#2b2b28", "#e3b04b", "#f1d6ab", "#f8f8f8"],},
+"LightBrown6": {"BACKGROUND": "#f9b282","TEXT": "#8f4426","INPUT": "#de6b35","TEXT_INPUT": "#FFFFFF","SCROLL": "#8f4426","BUTTON": ("#FFFFFF", "#8f4426"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#8f4426", "#de6b35", "#64ccda", "#f9b282"],},
+"DarkTeal1": {"BACKGROUND": "#396362","TEXT": "#ffe7d1","INPUT": "#f6c89f","TEXT_INPUT": "#000000","SCROLL": "#f6c89f","BUTTON": ("#ffe7d1", "#4b8e8d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#396362", "#4b8e8d", "#f6c89f", "#ffe7d1"],},
+"LightBrown7": {"BACKGROUND": "#f6c89f","TEXT": "#396362","INPUT": "#4b8e8d","TEXT_INPUT": "#FFFFFF","SCROLL": "#396362","BUTTON": ("#FFFFFF", "#396362"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#396362", "#4b8e8d", "#f6c89f", "#ffe7d1"],},
+"DarkPurple1": {"BACKGROUND": "#0c093c","TEXT": "#fad6d6","INPUT": "#eea5f6","TEXT_INPUT": "#000000","SCROLL": "#eea5f6","BUTTON": ("#FFFFFF", "#df42d1"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#0c093c", "#df42d1", "#eea5f6", "#fad6d6"],},
+"DarkGrey3": {"BACKGROUND": "#211717","TEXT": "#dfddc7","INPUT": "#f58b54","TEXT_INPUT": "#000000","SCROLL": "#f58b54","BUTTON": ("#dfddc7", "#a34a28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#211717", "#a34a28", "#f58b54", "#dfddc7"],},
+"LightBrown8": {"BACKGROUND": "#dfddc7","TEXT": "#211717","INPUT": "#a34a28","TEXT_INPUT": "#dfddc7","SCROLL": "#211717","BUTTON": ("#dfddc7", "#a34a28"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#211717", "#a34a28", "#f58b54", "#dfddc7"],},
+"DarkBlue4": {"BACKGROUND": "#494ca2","TEXT": "#e3e7f1","INPUT": "#c6cbef","TEXT_INPUT": "#000000","SCROLL": "#c6cbef","BUTTON": ("#FFFFFF", "#8186d5"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#494ca2", "#8186d5", "#c6cbef", "#e3e7f1"],},
+"LightBlue4": {"BACKGROUND": "#5c94bd","TEXT": "#470938","INPUT": "#1a3e59","TEXT_INPUT": "#FFFFFF","SCROLL": "#470938","BUTTON": ("#FFFFFF", "#470938"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#470938", "#1a3e59", "#5c94bd", "#f2d6eb"],},
+"DarkTeal2": {"BACKGROUND": "#394a6d","TEXT": "#c0ffb3","INPUT": "#52de97","TEXT_INPUT": "#000000","SCROLL": "#52de97","BUTTON": ("#c0ffb3", "#394a6d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#394a6d", "#3c9d9b", "#52de97", "#c0ffb3"],},
+"DarkTeal3": {"BACKGROUND": "#3c9d9b","TEXT": "#c0ffb3","INPUT": "#52de97","TEXT_INPUT": "#000000","SCROLL": "#52de97","BUTTON": ("#c0ffb3", "#394a6d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#394a6d", "#3c9d9b", "#52de97", "#c0ffb3"],},
+"DarkPurple5": {"BACKGROUND": "#730068","TEXT": "#f6f078","INPUT": "#01d28e","TEXT_INPUT": "#000000","SCROLL": "#01d28e","BUTTON": ("#f6f078", "#730068"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#730068", "#434982", "#01d28e", "#f6f078"],},
+"DarkPurple2": {"BACKGROUND": "#202060","TEXT": "#b030b0","INPUT": "#602080","TEXT_INPUT": "#FFFFFF","SCROLL": "#602080","BUTTON": ("#FFFFFF", "#202040"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#202040", "#202060", "#602080", "#b030b0"],},
+"DarkBlue5": {"BACKGROUND": "#000272","TEXT": "#ff6363","INPUT": "#a32f80","TEXT_INPUT": "#FFFFFF","SCROLL": "#a32f80","BUTTON": ("#FFFFFF", "#341677"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#000272", "#341677", "#a32f80", "#ff6363"],},
+"LightGrey2": {"BACKGROUND": "#f6f6f6","TEXT": "#420000","INPUT": "#d4d7dd","TEXT_INPUT": "#420000","SCROLL": "#420000","BUTTON": ("#420000", "#d4d7dd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#420000", "#d4d7dd", "#eae9e9", "#f6f6f6"],},
+"LightGrey3": {"BACKGROUND": "#eae9e9","TEXT": "#420000","INPUT": "#d4d7dd","TEXT_INPUT": "#420000","SCROLL": "#420000","BUTTON": ("#420000", "#d4d7dd"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#420000", "#d4d7dd", "#eae9e9", "#f6f6f6"],},
+"DarkBlue6": {"BACKGROUND": "#01024e","TEXT": "#ff6464","INPUT": "#8b4367","TEXT_INPUT": "#FFFFFF","SCROLL": "#8b4367","BUTTON": ("#FFFFFF", "#543864"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#01024e", "#543864", "#8b4367", "#ff6464"],},
+"DarkBlue7": {"BACKGROUND": "#241663","TEXT": "#eae7af","INPUT": "#a72693","TEXT_INPUT": "#eae7af","SCROLL": "#a72693","BUTTON": ("#eae7af", "#160f30"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#160f30", "#241663", "#a72693", "#eae7af"],},
+"LightBrown9": {"BACKGROUND": "#f6d365","TEXT": "#3a1f5d","INPUT": "#c83660","TEXT_INPUT": "#f6d365","SCROLL": "#3a1f5d","BUTTON": ("#f6d365", "#c83660"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3a1f5d", "#c83660", "#e15249", "#f6d365"],},
+"DarkPurple3": {"BACKGROUND": "#6e2142","TEXT": "#ffd692","INPUT": "#e16363","TEXT_INPUT": "#ffd692","SCROLL": "#e16363","BUTTON": ("#ffd692", "#943855"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#6e2142", "#943855", "#e16363", "#ffd692"],},
+"LightBrown10": {"BACKGROUND": "#ffd692","TEXT": "#6e2142","INPUT": "#943855","TEXT_INPUT": "#FFFFFF","SCROLL": "#6e2142","BUTTON": ("#FFFFFF", "#6e2142"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#6e2142", "#943855", "#e16363", "#ffd692"],},
+"DarkPurple4": {"BACKGROUND": "#200f21","TEXT": "#f638dc","INPUT": "#5a3d5c","TEXT_INPUT": "#FFFFFF","SCROLL": "#5a3d5c","BUTTON": ("#FFFFFF", "#382039"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#200f21", "#382039", "#5a3d5c", "#f638dc"],},
+"LightBlue5": {"BACKGROUND": "#b2fcff","TEXT": "#3e64ff","INPUT": "#5edfff","TEXT_INPUT": "#000000","SCROLL": "#3e64ff","BUTTON": ("#FFFFFF", "#3e64ff"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3e64ff", "#5edfff", "#b2fcff", "#ecfcff"],},
+"DarkTeal4": {"BACKGROUND": "#464159","TEXT": "#c7f0db","INPUT": "#8bbabb","TEXT_INPUT": "#000000","SCROLL": "#8bbabb","BUTTON": ("#FFFFFF", "#6c7b95"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#464159", "#6c7b95", "#8bbabb", "#c7f0db"],},
+"LightTeal": {"BACKGROUND": "#c7f0db","TEXT": "#464159","INPUT": "#6c7b95","TEXT_INPUT": "#FFFFFF","SCROLL": "#464159","BUTTON": ("#FFFFFF", "#464159"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#464159", "#6c7b95", "#8bbabb", "#c7f0db"],},
+"DarkTeal5": {"BACKGROUND": "#8bbabb","TEXT": "#464159","INPUT": "#6c7b95","TEXT_INPUT": "#FFFFFF","SCROLL": "#464159","BUTTON": ("#c7f0db", "#6c7b95"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#464159", "#6c7b95", "#8bbabb", "#c7f0db"],},
+"LightGrey4": {"BACKGROUND": "#faf5ef","TEXT": "#672f2f","INPUT": "#99b19c","TEXT_INPUT": "#672f2f","SCROLL": "#672f2f","BUTTON": ("#672f2f", "#99b19c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#672f2f", "#99b19c", "#d7d1c9", "#faf5ef"],},
+"LightGreen7": {"BACKGROUND": "#99b19c","TEXT": "#faf5ef","INPUT": "#d7d1c9","TEXT_INPUT": "#000000","SCROLL": "#d7d1c9","BUTTON": ("#FFFFFF", "#99b19c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#672f2f", "#99b19c", "#d7d1c9", "#faf5ef"],},
+"LightGrey5": {"BACKGROUND": "#d7d1c9","TEXT": "#672f2f","INPUT": "#99b19c","TEXT_INPUT": "#672f2f","SCROLL": "#672f2f","BUTTON": ("#FFFFFF", "#672f2f"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#672f2f", "#99b19c", "#d7d1c9", "#faf5ef"],},
+"DarkBrown3": {"BACKGROUND": "#a0855b","TEXT": "#f9f6f2","INPUT": "#f1d6ab","TEXT_INPUT": "#000000","SCROLL": "#f1d6ab","BUTTON": ("#FFFFFF", "#38470b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#38470b", "#a0855b", "#f1d6ab", "#f9f6f2"],},
+"LightBrown11": {"BACKGROUND": "#f1d6ab","TEXT": "#38470b","INPUT": "#a0855b","TEXT_INPUT": "#FFFFFF","SCROLL": "#38470b","BUTTON": ("#f9f6f2", "#a0855b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#38470b", "#a0855b", "#f1d6ab", "#f9f6f2"],},
+"DarkRed": {"BACKGROUND": "#83142c","TEXT": "#f9d276","INPUT": "#ad1d45","TEXT_INPUT": "#FFFFFF","SCROLL": "#ad1d45","BUTTON": ("#f9d276", "#ad1d45"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#44000d", "#83142c", "#ad1d45", "#f9d276"],},
+"DarkTeal6": {"BACKGROUND": "#204969","TEXT": "#fff7f7","INPUT": "#dadada","TEXT_INPUT": "#000000","SCROLL": "#dadada","BUTTON": ("#000000", "#fff7f7"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#204969", "#08ffc8", "#dadada", "#fff7f7"],},
+"DarkBrown4": {"BACKGROUND": "#252525","TEXT": "#ff0000","INPUT": "#af0404","TEXT_INPUT": "#FFFFFF","SCROLL": "#af0404","BUTTON": ("#FFFFFF", "#252525"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#252525", "#414141", "#af0404", "#ff0000"],},
+"LightYellow": {"BACKGROUND": "#f4ff61","TEXT": "#27aa80","INPUT": "#32ff6a","TEXT_INPUT": "#000000","SCROLL": "#27aa80","BUTTON": ("#f4ff61", "#27aa80"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#27aa80", "#32ff6a", "#a8ff3e", "#f4ff61"],},
+"DarkGreen1": {"BACKGROUND": "#2b580c","TEXT": "#fdef96","INPUT": "#f7b71d","TEXT_INPUT": "#000000","SCROLL": "#f7b71d","BUTTON": ("#fdef96", "#2b580c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#2b580c", "#afa939", "#f7b71d", "#fdef96"],},
+"LightGreen8": {"BACKGROUND": "#c8dad3","TEXT": "#63707e","INPUT": "#93b5b3","TEXT_INPUT": "#000000","SCROLL": "#63707e","BUTTON": ("#FFFFFF", "#63707e"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#63707e", "#93b5b3", "#c8dad3", "#f2f6f5"],},
+"DarkTeal7": {"BACKGROUND": "#248ea9","TEXT": "#fafdcb","INPUT": "#aee7e8","TEXT_INPUT": "#000000","SCROLL": "#aee7e8","BUTTON": ("#000000", "#fafdcb"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#248ea9", "#28c3d4", "#aee7e8", "#fafdcb"],},
+"DarkBlue8": {"BACKGROUND": "#454d66","TEXT": "#d9d872","INPUT": "#58b368","TEXT_INPUT": "#000000","SCROLL": "#58b368","BUTTON": ("#000000", "#009975"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#009975", "#454d66", "#58b368", "#d9d872"],},
+"DarkBlue9": {"BACKGROUND": "#263859","TEXT": "#ff6768","INPUT": "#6b778d","TEXT_INPUT": "#FFFFFF","SCROLL": "#6b778d","BUTTON": ("#ff6768", "#263859"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#17223b", "#263859", "#6b778d", "#ff6768"],},
+"DarkBlue10": {"BACKGROUND": "#0028ff","TEXT": "#f1f4df","INPUT": "#10eaf0","TEXT_INPUT": "#000000","SCROLL": "#10eaf0","BUTTON": ("#f1f4df", "#24009c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#24009c", "#0028ff", "#10eaf0", "#f1f4df"],},
+"DarkBlue11": {"BACKGROUND": "#6384b3","TEXT": "#e6f0b6","INPUT": "#b8e9c0","TEXT_INPUT": "#000000","SCROLL": "#b8e9c0","BUTTON": ("#e6f0b6", "#684949"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#684949", "#6384b3", "#b8e9c0", "#e6f0b6"],},
+"DarkTeal8": {"BACKGROUND": "#71a0a5","TEXT": "#212121","INPUT": "#665c84","TEXT_INPUT": "#FFFFFF","SCROLL": "#212121","BUTTON": ("#fab95b", "#665c84"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#212121", "#665c84", "#71a0a5", "#fab95b"],},
+"DarkRed1": {"BACKGROUND": "#c10000","TEXT": "#eeeeee","INPUT": "#dedede","TEXT_INPUT": "#000000","SCROLL": "#dedede","BUTTON": ("#c10000", "#eeeeee"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#c10000", "#ff4949", "#dedede", "#eeeeee"],},
+"LightBrown5": {"BACKGROUND": "#fff591","TEXT": "#e41749","INPUT": "#f5587b","TEXT_INPUT": "#000000","SCROLL": "#e41749","BUTTON": ("#fff591", "#e41749"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#e41749", "#f5587b", "#ff8a5c", "#fff591"],},
+"LightGreen9": {"BACKGROUND": "#f1edb3","TEXT": "#3b503d","INPUT": "#4a746e","TEXT_INPUT": "#f1edb3","SCROLL": "#3b503d","BUTTON": ("#f1edb3", "#3b503d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3b503d", "#4a746e", "#c8cf94", "#f1edb3"],"DESCRIPTION": ["Green", "Turquoise", "Yellow"],},
+"DarkGreen2": {"BACKGROUND": "#3b503d","TEXT": "#f1edb3","INPUT": "#c8cf94","TEXT_INPUT": "#000000","SCROLL": "#c8cf94","BUTTON": ("#f1edb3", "#3b503d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3b503d", "#4a746e", "#c8cf94", "#f1edb3"],"DESCRIPTION": ["Green", "Turquoise", "Yellow"],},
+"LightGray1": {"BACKGROUND": "#f2f2f2","TEXT": "#222831","INPUT": "#393e46","TEXT_INPUT": "#FFFFFF","SCROLL": "#222831","BUTTON": ("#f2f2f2", "#222831"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#222831", "#393e46", "#f96d00", "#f2f2f2"],"DESCRIPTION": ["#000000", "Grey", "Orange", "Grey", "Autumn"],},
+"DarkGrey4": {"BACKGROUND": "#52524e","TEXT": "#e9e9e5","INPUT": "#d4d6c8","TEXT_INPUT": "#000000","SCROLL": "#d4d6c8","BUTTON": ("#FFFFFF", "#9a9b94"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#52524e", "#9a9b94", "#d4d6c8", "#e9e9e5"],"DESCRIPTION": ["Grey", "Pastel", "Winter"],},
+"DarkBlue12": {"BACKGROUND": "#324e7b","TEXT": "#f8f8f8","INPUT": "#86a6df","TEXT_INPUT": "#000000","SCROLL": "#86a6df","BUTTON": ("#FFFFFF", "#5068a9"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#324e7b", "#5068a9", "#86a6df", "#f8f8f8"],"DESCRIPTION": ["Blue", "Grey", "Cold", "Winter"],},
+"DarkPurple6": {"BACKGROUND": "#070739","TEXT": "#e1e099","INPUT": "#c327ab","TEXT_INPUT": "#e1e099","SCROLL": "#c327ab","BUTTON": ("#e1e099", "#521477"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#070739", "#521477", "#c327ab", "#e1e099"],"DESCRIPTION": ["#000000", "Purple", "Yellow", "Dark"],},
+"DarkPurple7": {"BACKGROUND": "#191930","TEXT": "#B1B7C5","INPUT": "#232B5C","TEXT_INPUT": "#D0E3E7","SCROLL": "#B1B7C5","BUTTON": ("#272D38", "#B1B7C5"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBlue13": {"BACKGROUND": "#203562","TEXT": "#e3e8f8","INPUT": "#c0c5cd","TEXT_INPUT": "#000000","SCROLL": "#c0c5cd","BUTTON": ("#FFFFFF", "#3e588f"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#203562", "#3e588f", "#c0c5cd", "#e3e8f8"],"DESCRIPTION": ["Blue", "Grey", "Wedding", "Cold"],},
+"DarkBrown5": {"BACKGROUND": "#3c1b1f","TEXT": "#f6e1b5","INPUT": "#e2bf81","TEXT_INPUT": "#000000","SCROLL": "#e2bf81","BUTTON": ("#3c1b1f", "#f6e1b5"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3c1b1f", "#b21e4b", "#e2bf81", "#f6e1b5"],"DESCRIPTION": ["Brown", "Red", "Yellow", "Warm"],},
+"DarkGreen3": {"BACKGROUND": "#062121","TEXT": "#eeeeee","INPUT": "#e4dcad","TEXT_INPUT": "#000000","SCROLL": "#e4dcad","BUTTON": ("#eeeeee", "#181810"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#062121", "#181810", "#e4dcad", "#eeeeee"],"DESCRIPTION": ["#000000", "#000000", "Brown", "Grey"],},
+"DarkBlack1": {"BACKGROUND": "#181810","TEXT": "#eeeeee","INPUT": "#e4dcad","TEXT_INPUT": "#000000","SCROLL": "#e4dcad","BUTTON": ("#FFFFFF", "#062121"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#062121", "#181810", "#e4dcad", "#eeeeee"],"DESCRIPTION": ["#000000", "#000000", "Brown", "Grey"],},
+"DarkGrey5": {"BACKGROUND": "#343434","TEXT": "#f3f3f3","INPUT": "#e9dcbe","TEXT_INPUT": "#000000","SCROLL": "#e9dcbe","BUTTON": ("#FFFFFF", "#8e8b82"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#343434", "#8e8b82", "#e9dcbe", "#f3f3f3"],"DESCRIPTION": ["Grey", "Brown"],},
+"LightBrown12": {"BACKGROUND": "#8e8b82","TEXT": "#f3f3f3","INPUT": "#e9dcbe","TEXT_INPUT": "#000000","SCROLL": "#e9dcbe","BUTTON": ("#f3f3f3", "#8e8b82"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#343434", "#8e8b82", "#e9dcbe", "#f3f3f3"],"DESCRIPTION": ["Grey", "Brown"],},
+"DarkTeal9": {"BACKGROUND": "#13445a","TEXT": "#fef4e8","INPUT": "#446878","TEXT_INPUT": "#FFFFFF","SCROLL": "#446878","BUTTON": ("#fef4e8", "#446878"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#13445a", "#970747", "#446878", "#fef4e8"],"DESCRIPTION": ["Red", "Grey", "Blue", "Wedding", "Retro"],},
+"DarkBlue14": {"BACKGROUND": "#21273d","TEXT": "#f1f6f8","INPUT": "#b9d4f1","TEXT_INPUT": "#000000","SCROLL": "#b9d4f1","BUTTON": ("#FFFFFF", "#6a759b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#21273d", "#6a759b", "#b9d4f1", "#f1f6f8"],"DESCRIPTION": ["Blue", "#000000", "Grey", "Cold", "Winter"],},
+"LightBlue6": {"BACKGROUND": "#f1f6f8","TEXT": "#21273d","INPUT": "#6a759b","TEXT_INPUT": "#FFFFFF","SCROLL": "#21273d","BUTTON": ("#f1f6f8", "#6a759b"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#21273d", "#6a759b", "#b9d4f1", "#f1f6f8"],"DESCRIPTION": ["Blue", "#000000", "Grey", "Cold", "Winter"],},
+"DarkGreen4": {"BACKGROUND": "#044343","TEXT": "#e4e4e4","INPUT": "#045757","TEXT_INPUT": "#e4e4e4","SCROLL": "#045757","BUTTON": ("#e4e4e4", "#045757"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#222222", "#044343", "#045757", "#e4e4e4"],"DESCRIPTION": ["#000000", "Turquoise", "Grey", "Dark"],},
+"DarkGreen5": {"BACKGROUND": "#1b4b36","TEXT": "#e0e7f1","INPUT": "#aebd77","TEXT_INPUT": "#000000","SCROLL": "#aebd77","BUTTON": ("#FFFFFF", "#538f6a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#1b4b36", "#538f6a", "#aebd77", "#e0e7f1"],"DESCRIPTION": ["Green", "Grey"],},
+"DarkTeal10": {"BACKGROUND": "#0d3446","TEXT": "#d8dfe2","INPUT": "#71adb5","TEXT_INPUT": "#000000","SCROLL": "#71adb5","BUTTON": ("#FFFFFF", "#176d81"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#0d3446", "#176d81", "#71adb5", "#d8dfe2"],"DESCRIPTION": ["Grey", "Turquoise", "Winter", "Cold"],},
+"DarkGrey6": {"BACKGROUND": "#3e3e3e","TEXT": "#ededed","INPUT": "#68868c","TEXT_INPUT": "#ededed","SCROLL": "#68868c","BUTTON": ("#FFFFFF", "#405559"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3e3e3e", "#405559", "#68868c", "#ededed"],"DESCRIPTION": ["Grey", "Turquoise", "Winter"],},
+"DarkTeal11": {"BACKGROUND": "#405559","TEXT": "#ededed","INPUT": "#68868c","TEXT_INPUT": "#ededed","SCROLL": "#68868c","BUTTON": ("#ededed", "#68868c"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#3e3e3e", "#405559", "#68868c", "#ededed"],"DESCRIPTION": ["Grey", "Turquoise", "Winter"],},
+"LightBlue7": {"BACKGROUND": "#9ed0e0","TEXT": "#19483f","INPUT": "#5c868e","TEXT_INPUT": "#FFFFFF","SCROLL": "#19483f","BUTTON": ("#FFFFFF", "#19483f"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#19483f", "#5c868e", "#ff6a38", "#9ed0e0"],"DESCRIPTION": ["Orange", "Blue", "Turquoise"],},
+"LightGreen10": {"BACKGROUND": "#d8ebb5","TEXT": "#205d67","INPUT": "#639a67","TEXT_INPUT": "#FFFFFF","SCROLL": "#205d67","BUTTON": ("#d8ebb5", "#205d67"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#205d67", "#639a67", "#d9bf77", "#d8ebb5"],"DESCRIPTION": ["Blue", "Green", "Brown", "Vintage"],},
+"DarkBlue15": {"BACKGROUND": "#151680","TEXT": "#f1fea4","INPUT": "#375fc0","TEXT_INPUT": "#f1fea4","SCROLL": "#375fc0","BUTTON": ("#f1fea4", "#1c44ac"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#151680", "#1c44ac", "#375fc0", "#f1fea4"],"DESCRIPTION": ["Blue", "Yellow", "Cold"],},
+"DarkBlue16": {"BACKGROUND": "#1c44ac","TEXT": "#f1fea4","INPUT": "#375fc0","TEXT_INPUT": "#f1fea4","SCROLL": "#375fc0","BUTTON": ("#f1fea4", "#151680"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#151680", "#1c44ac", "#375fc0", "#f1fea4"],"DESCRIPTION": ["Blue", "Yellow", "Cold"],},
+"DarkTeal12": {"BACKGROUND": "#004a7c","TEXT": "#fafafa","INPUT": "#e8f1f5","TEXT_INPUT": "#000000","SCROLL": "#e8f1f5","BUTTON": ("#fafafa", "#005691"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#004a7c", "#005691", "#e8f1f5", "#fafafa"],"DESCRIPTION": ["Grey", "Blue", "Cold", "Winter"],},
+"LightBrown13": {"BACKGROUND": "#ebf5ee","TEXT": "#921224","INPUT": "#bdc6b8","TEXT_INPUT": "#921224","SCROLL": "#921224","BUTTON": ("#FFFFFF", "#921224"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#921224", "#bdc6b8", "#bce0da", "#ebf5ee"],"DESCRIPTION": ["Red", "Blue", "Grey", "Vintage", "Wedding"],},
+"DarkBlue17": {"BACKGROUND": "#21294c","TEXT": "#f9f2d7","INPUT": "#f2dea8","TEXT_INPUT": "#000000","SCROLL": "#f2dea8","BUTTON": ("#f9f2d7", "#141829"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#141829", "#21294c", "#f2dea8", "#f9f2d7"],"DESCRIPTION": ["#000000", "Blue", "Yellow"],},
+"DarkBrown6": {"BACKGROUND": "#785e4d","TEXT": "#f2eee3","INPUT": "#baaf92","TEXT_INPUT": "#000000","SCROLL": "#baaf92","BUTTON": ("#FFFFFF", "#785e4d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#785e4d", "#ff8426", "#baaf92", "#f2eee3"],"DESCRIPTION": ["Grey", "Brown", "Orange", "Autumn"],},
+"DarkGreen6": {"BACKGROUND": "#5c715e","TEXT": "#f2f9f1","INPUT": "#ddeedf","TEXT_INPUT": "#000000","SCROLL": "#ddeedf","BUTTON": ("#f2f9f1", "#5c715e"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#5c715e", "#b6cdbd", "#ddeedf", "#f2f9f1"],"DESCRIPTION": ["Grey", "Green", "Vintage"],},
+"DarkGreen7": {"BACKGROUND": "#0C231E","TEXT": "#efbe1c","INPUT": "#153C33","TEXT_INPUT": "#efbe1c","SCROLL": "#153C33","BUTTON": ("#efbe1c", "#153C33"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey7": {"BACKGROUND": "#4b586e","TEXT": "#dddddd","INPUT": "#574e6d","TEXT_INPUT": "#dddddd","SCROLL": "#574e6d","BUTTON": ("#dddddd", "#43405d"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#43405d", "#4b586e", "#574e6d", "#dddddd"],"DESCRIPTION": ["Grey", "Winter", "Cold"],},
+"DarkRed2": {"BACKGROUND": "#ab1212","TEXT": "#f6e4b5","INPUT": "#cd3131","TEXT_INPUT": "#f6e4b5","SCROLL": "#cd3131","BUTTON": ("#f6e4b5", "#ab1212"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#ab1212", "#1fad9f", "#cd3131", "#f6e4b5"],"DESCRIPTION": ["Turquoise", "Red", "Yellow"],},
+"LightGrey6": {"BACKGROUND": "#e3e3e3","TEXT": "#233142","INPUT": "#455d7a","TEXT_INPUT": "#e3e3e3","SCROLL": "#233142","BUTTON": ("#e3e3e3", "#455d7a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,"COLOR_LIST": ["#233142", "#455d7a", "#f95959", "#e3e3e3"],"DESCRIPTION": ["#000000", "Blue", "Red", "Grey"],},
+"HotDogStand": {"BACKGROUND": "red","TEXT": "yellow","INPUT": "yellow","TEXT_INPUT": "#000000","SCROLL": "yellow","BUTTON": ("red", "yellow"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey8": {"BACKGROUND": "#19232D","TEXT": "#ffffff","INPUT": "#32414B","TEXT_INPUT": "#ffffff","SCROLL": "#505F69","BUTTON": ("#ffffff", "#32414B"),"PROGRESS": ("#505F69", "#32414B"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey9": {"BACKGROUND": "#36393F","TEXT": "#DCDDDE","INPUT": "#40444B","TEXT_INPUT": "#ffffff","SCROLL": "#202225","BUTTON": ("#202225", "#B9BBBE"),"PROGRESS": ("#202225", "#40444B"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey10": {"BACKGROUND": "#1c1e23","TEXT": "#cccdcf","INPUT": "#272a31","TEXT_INPUT": "#8b9fde","SCROLL": "#313641","BUTTON": ("#f5f5f6", "#2e3d5a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey11": {"BACKGROUND": "#1c1e23","TEXT": "#cccdcf","INPUT": "#313641","TEXT_INPUT": "#cccdcf","SCROLL": "#313641","BUTTON": ("#f5f5f6", "#313641"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey12": {"BACKGROUND": "#1c1e23","TEXT": "#8b9fde","INPUT": "#313641","TEXT_INPUT": "#8b9fde","SCROLL": "#313641","BUTTON": ("#cccdcf", "#2e3d5a"),"PROGRESS": DEFAULT_PROGRESS_BAR_COMPUTE,"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey13": {"BACKGROUND": "#1c1e23","TEXT": "#cccdcf","INPUT": "#272a31","TEXT_INPUT": "#cccdcf","SCROLL": "#313641","BUTTON": ("#8b9fde", "#313641"),"PROGRESS": ("#cccdcf", "#272a31"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkGrey14": {"BACKGROUND": "#24292e","TEXT": "#fafbfc","INPUT": "#1d2125","TEXT_INPUT": "#fafbfc","SCROLL": "#1d2125","BUTTON": ("#fafbfc", "#155398"),"PROGRESS": ("#155398", "#1d2125"),"BORDER": 1,"SLIDER_DEPTH": 0,"PROGRESS_DEPTH": 0,},
+"DarkBrown7": {"BACKGROUND": "#2c2417","TEXT": "#baa379","INPUT": "#baa379","TEXT_INPUT": "#000000","SCROLL": "#392e1c","BUTTON": ("#000000", "#baa379"),"PROGRESS": ("#baa379", "#453923"),"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+"Python": {"BACKGROUND": "#3d7aab","TEXT": "#ffde56","INPUT": "#295273","TEXT_INPUT": "#ffde56","SCROLL": "#295273","BUTTON": ("#ffde56", "#295273"),"PROGRESS": ("#ffde56", "#295273"),"BORDER": 1,"SLIDER_DEPTH": 1,"PROGRESS_DEPTH": 0,},
+}
 
-                       'SystemDefaultForReal':
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': COLOR_SYSTEM_DEFAULT,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'SystemDefault1':
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': COLOR_SYSTEM_DEFAULT,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'Material1': {'BACKGROUND': '#E3F2FD',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#86A8FF',
-                                     'TEXT_INPUT': '#000000',
-                                     'SCROLL': '#86A8FF',
-                                     'BUTTON': ('#FFFFFF', '#5079D3'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'Material2': {'BACKGROUND': '#FAFAFA',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#004EA1',
-                                     'TEXT_INPUT': '#FFFFFF',
-                                     'SCROLL': '#5EA7FF',
-                                     'BUTTON': ('#FFFFFF', '#0079D3'),  # based on Reddit color
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'Reddit': {'BACKGROUND': '#ffffff',
-                                  'TEXT': '#1a1a1b',
-                                  'INPUT': '#dae0e6',
-                                  'TEXT_INPUT': '#222222',
-                                  'SCROLL': '#a5a4a4',
-                                  'BUTTON': ('white', '#0079d3'),
-                                  'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                  'BORDER': 1,
-                                  'SLIDER_DEPTH': 0,
-                                  'PROGRESS_DEPTH': 0,
-                                  'ACCENT1': '#ff5414',
-                                  'ACCENT2': '#33a8ff',
-                                  'ACCENT3': '#dbf0ff'},
-
-                       'Topanga': {'BACKGROUND': '#282923',
-                                   'TEXT': '#E7DB74',
-                                   'INPUT': '#393a32',
-                                   'TEXT_INPUT': '#E7C855',
-                                   'SCROLL': '#E7C855',
-                                   'BUTTON': ('#E7C855', '#284B5A'),
-                                   'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                   'BORDER': 1,
-                                   'SLIDER_DEPTH': 0,
-                                   'PROGRESS_DEPTH': 0,
-                                   'ACCENT1': '#c15226',
-                                   'ACCENT2': '#7a4d5f',
-                                   'ACCENT3': '#889743'},
-
-                       'GreenTan': {'BACKGROUND': '#9FB8AD',
-                                    'TEXT': COLOR_SYSTEM_DEFAULT,
-                                    'INPUT': '#F7F3EC', 'TEXT_INPUT': 'black',
-                                    'SCROLL': '#F7F3EC',
-                                    'BUTTON': ('white', '#475841'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                    'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'Dark': {'BACKGROUND': '#404040',
-                                'TEXT': 'white',
-                                'INPUT': '#4D4D4D',
-                                'TEXT_INPUT': 'white',
-                                'SCROLL': '#707070',
-                                'BUTTON': ('white', '#004F00'),
-                                'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                'BORDER': 1,
-                                'SLIDER_DEPTH': 0,
-                                'PROGRESS_DEPTH': 0},
-
-                       'LightGreen': {'BACKGROUND': '#B7CECE',
-                                      'TEXT': 'black',
-                                      'INPUT': '#FDFFF7',
-                                      'TEXT_INPUT': 'black',
-                                      'SCROLL': '#FDFFF7',
-                                      'BUTTON': ('white', '#658268'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'ACCENT1': '#76506d',
-                                      'ACCENT2': '#5148f1',
-                                      'ACCENT3': '#0a1c84',
-                                      'PROGRESS_DEPTH': 0},
-
-                       'Dark2': {'BACKGROUND': '#404040',
-                                 'TEXT': 'white',
-                                 'INPUT': 'white',
-                                 'TEXT_INPUT': 'black',
-                                 'SCROLL': '#707070',
-                                 'BUTTON': ('white', '#004F00'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'Black': {'BACKGROUND': 'black',
-                                 'TEXT': 'white',
-                                 'INPUT': '#4D4D4D',
-                                 'TEXT_INPUT': 'white',
-                                 'SCROLL': '#707070',
-                                 'BUTTON': ('black', 'white'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'Tan': {'BACKGROUND': '#fdf6e3',
-                               'TEXT': '#268bd1',
-                               'INPUT': '#eee8d5',
-                               'TEXT_INPUT': '#6c71c3',
-                               'SCROLL': '#eee8d5',
-                               'BUTTON': ('white', '#063542'),
-                               'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                               'BORDER': 1,
-                               'SLIDER_DEPTH': 0,
-                               'PROGRESS_DEPTH': 0},
-
-                       'TanBlue': {'BACKGROUND': '#e5dece',
-                                   'TEXT': '#063289',
-                                   'INPUT': '#f9f8f4',
-                                   'TEXT_INPUT': '#242834',
-                                   'SCROLL': '#eee8d5',
-                                   'BUTTON': ('white', '#063289'),
-                                   'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                   'BORDER': 1,
-                                   'SLIDER_DEPTH': 0,
-                                   'PROGRESS_DEPTH': 0},
-
-                       'DarkTanBlue': {'BACKGROUND': '#242834',
-                                       'TEXT': '#dfe6f8',
-                                       'INPUT': '#97755c',
-                                       'TEXT_INPUT': 'white',
-                                       'SCROLL': '#a9afbb',
-                                       'BUTTON': ('white', '#063289'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkAmber': {'BACKGROUND': '#2c2825',
-                                     'TEXT': '#fdcb52',
-                                     'INPUT': '#705e52',
-                                     'TEXT_INPUT': '#fdcb52',
-                                     'SCROLL': '#705e52',
-                                     'BUTTON': ('black', '#fdcb52'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue': {'BACKGROUND': '#1a2835',
-                                    'TEXT': '#d1ecff',
-                                    'INPUT': '#335267',
-                                    'TEXT_INPUT': '#acc2d0',
-                                    'SCROLL': '#1b6497',
-                                    'BUTTON': ('black', '#fafaf8'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                    'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'Reds': {'BACKGROUND': '#280001',
-                                'TEXT': 'white',
-                                'INPUT': '#d8d584',
-                                'TEXT_INPUT': 'black',
-                                'SCROLL': '#763e00',
-                                'BUTTON': ('black', '#daad28'),
-                                'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                'BORDER': 1,
-                                'SLIDER_DEPTH': 0,
-                                'PROGRESS_DEPTH': 0},
-
-                       'Green': {'BACKGROUND': '#82a459',
-                                 'TEXT': 'black',
-                                 'INPUT': '#d8d584',
-                                 'TEXT_INPUT': 'black',
-                                 'SCROLL': '#e3ecf3',
-                                 'BUTTON': ('white', '#517239'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'BluePurple': {'BACKGROUND': '#A5CADD',
-                                      'TEXT': '#6E266E',
-                                      'INPUT': '#E0F5FF',
-                                      'TEXT_INPUT': 'black',
-                                      'SCROLL': '#E0F5FF',
-                                      'BUTTON': ('white', '#303952'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'Purple': {'BACKGROUND': '#B0AAC2',
-                                  'TEXT': 'black',
-                                  'INPUT': '#F2EFE8',
-                                  'SCROLL': '#F2EFE8',
-                                  'TEXT_INPUT': 'black',
-                                  'BUTTON': ('black', '#C2D4D8'),
-                                  'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                  'BORDER': 1,
-                                  'SLIDER_DEPTH': 0,
-                                  'PROGRESS_DEPTH': 0},
-
-                       'BlueMono': {'BACKGROUND': '#AAB6D3',
-                                    'TEXT': 'black',
-                                    'INPUT': '#F1F4FC',
-                                    'SCROLL': '#F1F4FC',
-                                    'TEXT_INPUT': 'black',
-                                    'BUTTON': ('white', '#7186C7'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                    'BORDER': 1,
-                                    'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'GreenMono': {'BACKGROUND': '#A8C1B4',
-                                     'TEXT': 'black',
-                                     'INPUT': '#DDE0DE',
-                                     'SCROLL': '#E3E3E3',
-                                     'TEXT_INPUT': 'black',
-                                     'BUTTON': ('white', '#6D9F85'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'BrownBlue': {'BACKGROUND': '#64778d',
-                                     'TEXT': 'white',
-                                     'INPUT': '#f0f3f7',
-                                     'SCROLL': '#A6B2BE',
-                                     'TEXT_INPUT': 'black',
-                                     'BUTTON': ('white', '#283b5b'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'BrightColors': {'BACKGROUND': '#b4ffb4',
-                                        'TEXT': 'black',
-                                        'INPUT': '#ffff64',
-                                        'SCROLL': '#ffb482',
-                                        'TEXT_INPUT': 'black',
-                                        'BUTTON': ('black', '#ffa0dc'),
-                                        'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                        'BORDER': 1,
-                                        'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0},
-
-                       'NeutralBlue': {'BACKGROUND': '#92aa9d',
-                                       'TEXT': 'black',
-                                       'INPUT': '#fcfff6',
-                                       'SCROLL': '#fcfff6',
-                                       'TEXT_INPUT': 'black',
-                                       'BUTTON': ('black', '#d0dbbd'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'Kayak': {'BACKGROUND': '#a7ad7f',
-                                 'TEXT': 'black',
-                                 'INPUT': '#e6d3a8',
-                                 'SCROLL': '#e6d3a8',
-                                 'TEXT_INPUT': 'black',
-                                 'BUTTON': ('white', '#5d907d'),
-                                 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                 'BORDER': 1,
-                                 'SLIDER_DEPTH': 0,
-                                 'PROGRESS_DEPTH': 0},
-
-                       'SandyBeach': {'BACKGROUND': '#efeccb',
-                                      'TEXT': '#012f2f',
-                                      'INPUT': '#e6d3a8',
-                                      'SCROLL': '#e6d3a8',
-                                      'TEXT_INPUT': '#012f2f',
-                                      'BUTTON': ('white', '#046380'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'TealMono': {'BACKGROUND': '#a8cfdd',
-                                    'TEXT': 'black',
-                                    'INPUT': '#dfedf2',
-                                    'SCROLL': '#dfedf2',
-                                    'TEXT_INPUT': 'black',
-                                    'BUTTON': ('white', '#183440'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                    'BORDER': 1,
-                                    'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-                       ################################## Renamed Original Themes ##################################
-                       'Default':  # plain gray but blue buttons
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'Default1':  # everything is gray
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': COLOR_SYSTEM_DEFAULT,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'DefaultNoMoreNagging':  # a duplicate of "Default" for users that are tired of the nag screen
-                           {'BACKGROUND': COLOR_SYSTEM_DEFAULT,
-                            'TEXT': COLOR_SYSTEM_DEFAULT,
-                            'INPUT': COLOR_SYSTEM_DEFAULT,
-                            'TEXT_INPUT': COLOR_SYSTEM_DEFAULT,
-                            'SCROLL': COLOR_SYSTEM_DEFAULT,
-                            'BUTTON': OFFICIAL_PYSIMPLEGUI_BUTTON_COLOR,
-                            'PROGRESS': COLOR_SYSTEM_DEFAULT,
-                            'BORDER': 1, 'SLIDER_DEPTH': 1,
-                            'PROGRESS_DEPTH': 0},
-
-                       'LightBlue': {'BACKGROUND': '#E3F2FD',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#86A8FF',
-                                     'TEXT_INPUT': '#000000',
-                                     'SCROLL': '#86A8FF',
-                                     'BUTTON': ('#FFFFFF', '#5079D3'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'LightGrey': {'BACKGROUND': '#FAFAFA',
-                                     'TEXT': '#000000',
-                                     'INPUT': '#004EA1',
-                                     'TEXT_INPUT': '#FFFFFF',
-                                     'SCROLL': '#5EA7FF',
-                                     'BUTTON': ('#FFFFFF', '#0079D3'),  # based on Reddit color
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 0, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#FF0266',
-                                     'ACCENT2': '#FF5C93',
-                                     'ACCENT3': '#C5003C'},
-
-                       'LightGrey1': {'BACKGROUND': '#ffffff',
-                                      'TEXT': '#1a1a1b',
-                                      'INPUT': '#dae0e6',
-                                      'TEXT_INPUT': '#222222',
-                                      'SCROLL': '#a5a4a4',
-                                      'BUTTON': ('white', '#0079d3'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0,
-                                      'ACCENT1': '#ff5414',
-                                      'ACCENT2': '#33a8ff',
-                                      'ACCENT3': '#dbf0ff'},
-
-                       'DarkBrown': {'BACKGROUND': '#282923',
-                                     'TEXT': '#E7DB74',
-                                     'INPUT': '#393a32',
-                                     'TEXT_INPUT': '#E7C855',
-                                     'SCROLL': '#E7C855',
-                                     'BUTTON': ('#E7C855', '#284B5A'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'ACCENT1': '#c15226',
-                                     'ACCENT2': '#7a4d5f',
-                                     'ACCENT3': '#889743'},
-
-                       'LightGreen1': {'BACKGROUND': '#9FB8AD',
-                                       'TEXT': COLOR_SYSTEM_DEFAULT,
-                                       'INPUT': '#F7F3EC', 'TEXT_INPUT': 'black',
-                                       'SCROLL': '#F7F3EC',
-                                       'BUTTON': ('white', '#475841'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkGrey': {'BACKGROUND': '#404040',
-                                    'TEXT': 'white',
-                                    'INPUT': '#4D4D4D',
-                                    'TEXT_INPUT': 'white',
-                                    'SCROLL': '#707070',
-                                    'BUTTON': ('white', '#004F00'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                    'BORDER': 1,
-                                    'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0},
-
-                       'LightGreen2': {'BACKGROUND': '#B7CECE',
-                                       'TEXT': 'black',
-                                       'INPUT': '#FDFFF7',
-                                       'TEXT_INPUT': 'black',
-                                       'SCROLL': '#FDFFF7',
-                                       'BUTTON': ('white', '#658268'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'ACCENT1': '#76506d',
-                                       'ACCENT2': '#5148f1',
-                                       'ACCENT3': '#0a1c84',
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkGrey1': {'BACKGROUND': '#404040',
-                                     'TEXT': 'white',
-                                     'INPUT': 'white',
-                                     'TEXT_INPUT': 'black',
-                                     'SCROLL': '#707070',
-                                     'BUTTON': ('white', '#004F00'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBlack': {'BACKGROUND': 'black',
-                                     'TEXT': 'white',
-                                     'INPUT': '#4D4D4D',
-                                     'TEXT_INPUT': 'white',
-                                     'SCROLL': '#707070',
-                                     'BUTTON': ('black', 'white'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'LightBrown': {'BACKGROUND': '#fdf6e3',
-                                      'TEXT': '#268bd1',
-                                      'INPUT': '#eee8d5',
-                                      'TEXT_INPUT': '#6c71c3',
-                                      'SCROLL': '#eee8d5',
-                                      'BUTTON': ('white', '#063542'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'LightBrown1': {'BACKGROUND': '#e5dece',
-                                       'TEXT': '#063289',
-                                       'INPUT': '#f9f8f4',
-                                       'TEXT_INPUT': '#242834',
-                                       'SCROLL': '#eee8d5',
-                                       'BUTTON': ('white', '#063289'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue1': {'BACKGROUND': '#242834',
-                                     'TEXT': '#dfe6f8',
-                                     'INPUT': '#97755c',
-                                     'TEXT_INPUT': 'white',
-                                     'SCROLL': '#a9afbb',
-                                     'BUTTON': ('white', '#063289'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBrown1': {'BACKGROUND': '#2c2825',
-                                      'TEXT': '#fdcb52',
-                                      'INPUT': '#705e52',
-                                      'TEXT_INPUT': '#fdcb52',
-                                      'SCROLL': '#705e52',
-                                      'BUTTON': ('black', '#fdcb52'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue2': {'BACKGROUND': '#1a2835',
-                                     'TEXT': '#d1ecff',
-                                     'INPUT': '#335267',
-                                     'TEXT_INPUT': '#acc2d0',
-                                     'SCROLL': '#1b6497',
-                                     'BUTTON': ('black', '#fafaf8'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'DarkBrown2': {'BACKGROUND': '#280001',
-                                      'TEXT': 'white',
-                                      'INPUT': '#d8d584',
-                                      'TEXT_INPUT': 'black',
-                                      'SCROLL': '#763e00',
-                                      'BUTTON': ('black', '#daad28'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'DarkGreen': {'BACKGROUND': '#82a459',
-                                     'TEXT': 'black',
-                                     'INPUT': '#d8d584',
-                                     'TEXT_INPUT': 'black',
-                                     'SCROLL': '#e3ecf3',
-                                     'BUTTON': ('white', '#517239'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'LightBlue1': {'BACKGROUND': '#A5CADD',
-                                      'TEXT': '#6E266E',
-                                      'INPUT': '#E0F5FF',
-                                      'TEXT_INPUT': 'black',
-                                      'SCROLL': '#E0F5FF',
-                                      'BUTTON': ('white', '#303952'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'LightPurple': {'BACKGROUND': '#B0AAC2',
-                                       'TEXT': 'black',
-                                       'INPUT': '#F2EFE8',
-                                       'SCROLL': '#F2EFE8',
-                                       'TEXT_INPUT': 'black',
-                                       'BUTTON': ('black', '#C2D4D8'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBlue2': {'BACKGROUND': '#AAB6D3',
-                                      'TEXT': 'black',
-                                      'INPUT': '#F1F4FC',
-                                      'SCROLL': '#F1F4FC',
-                                      'TEXT_INPUT': 'black',
-                                      'BUTTON': ('white', '#7186C7'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       'LightGreen3': {'BACKGROUND': '#A8C1B4',
-                                       'TEXT': 'black',
-                                       'INPUT': '#DDE0DE',
-                                       'SCROLL': '#E3E3E3',
-                                       'TEXT_INPUT': 'black',
-                                       'BUTTON': ('white', '#6D9F85'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'DarkBlue3': {'BACKGROUND': '#64778d',
-                                     'TEXT': 'white',
-                                     'INPUT': '#f0f3f7',
-                                     'SCROLL': '#A6B2BE',
-                                     'TEXT_INPUT': 'black',
-                                     'BUTTON': ('white', '#283b5b'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                     'BORDER': 1,
-                                     'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0},
-
-                       'LightGreen4': {'BACKGROUND': '#b4ffb4',
-                                       'TEXT': 'black',
-                                       'INPUT': '#ffff64',
-                                       'SCROLL': '#ffb482',
-                                       'TEXT_INPUT': 'black',
-                                       'BUTTON': ('black', '#ffa0dc'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightGreen5': {'BACKGROUND': '#92aa9d',
-                                       'TEXT': 'black',
-                                       'INPUT': '#fcfff6',
-                                       'SCROLL': '#fcfff6',
-                                       'TEXT_INPUT': 'black',
-                                       'BUTTON': ('black', '#d0dbbd'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBrown2': {'BACKGROUND': '#a7ad7f',
-                                       'TEXT': 'black',
-                                       'INPUT': '#e6d3a8',
-                                       'SCROLL': '#e6d3a8',
-                                       'TEXT_INPUT': 'black',
-                                       'BUTTON': ('white', '#5d907d'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1,
-                                       'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBrown3': {'BACKGROUND': '#efeccb',
-                                       'TEXT': '#012f2f',
-                                       'INPUT': '#e6d3a8',
-                                       'SCROLL': '#e6d3a8',
-                                       'TEXT_INPUT': '#012f2f',
-                                       'BUTTON': ('white', '#046380'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                       'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0},
-
-                       'LightBlue3': {'BACKGROUND': '#a8cfdd',
-                                      'TEXT': 'black',
-                                      'INPUT': '#dfedf2',
-                                      'SCROLL': '#dfedf2',
-                                      'TEXT_INPUT': 'black',
-                                      'BUTTON': ('white', '#183440'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR,
-                                      'BORDER': 1,
-                                      'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0},
-
-                       ################################## End Renamed Original Themes ##################################
-
-                       #
-                       'LightBrown4': {'BACKGROUND': '#d7c79e', 'TEXT': '#a35638', 'INPUT': '#9dab86', 'TEXT_INPUT': '#000000', 'SCROLL': '#a35638',
-                                       'BUTTON': ('white', '#a35638'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#a35638', '#9dab86', '#e08f62', '#d7c79e'], },
-                       'DarkTeal': {'BACKGROUND': '#003f5c', 'TEXT': '#fb5b5a', 'INPUT': '#bc4873', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#bc4873',
-                                    'BUTTON': ('white', '#fb5b5a'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                    'COLOR_LIST': ['#003f5c', '#472b62', '#bc4873', '#fb5b5a'], },
-                       'DarkPurple': {'BACKGROUND': '#472b62', 'TEXT': '#fb5b5a', 'INPUT': '#bc4873', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#bc4873',
-                                      'BUTTON': ('#FFFFFF', '#472b62'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#003f5c', '#472b62', '#bc4873', '#fb5b5a'], },
-                       'LightGreen6': {'BACKGROUND': '#eafbea', 'TEXT': '#1f6650', 'INPUT': '#6f9a8d', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#1f6650',
-                                       'BUTTON': ('white', '#1f6650'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#1f6650', '#6f9a8d', '#ea5e5e', '#eafbea'], },
-                       'DarkGrey2': {'BACKGROUND': '#2b2b28', 'TEXT': '#f8f8f8', 'INPUT': '#f1d6ab', 'TEXT_INPUT': '#000000', 'SCROLL': '#f1d6ab',
-                                     'BUTTON': ('#2b2b28', '#e3b04b'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#2b2b28', '#e3b04b', '#f1d6ab', '#f8f8f8'], },
-                       'LightBrown6': {'BACKGROUND': '#f9b282', 'TEXT': '#8f4426', 'INPUT': '#de6b35', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#8f4426',
-                                       'BUTTON': ('white', '#8f4426'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#8f4426', '#de6b35', '#64ccda', '#f9b282'], },
-                       'DarkTeal1': {'BACKGROUND': '#396362', 'TEXT': '#ffe7d1', 'INPUT': '#f6c89f', 'TEXT_INPUT': '#000000', 'SCROLL': '#f6c89f',
-                                     'BUTTON': ('#ffe7d1', '#4b8e8d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#396362', '#4b8e8d', '#f6c89f', '#ffe7d1'], },
-                       'LightBrown7': {'BACKGROUND': '#f6c89f', 'TEXT': '#396362', 'INPUT': '#4b8e8d', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#396362',
-                                       'BUTTON': ('white', '#396362'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#396362', '#4b8e8d', '#f6c89f', '#ffe7d1'], },
-                       'DarkPurple1': {'BACKGROUND': '#0c093c', 'TEXT': '#fad6d6', 'INPUT': '#eea5f6', 'TEXT_INPUT': '#000000', 'SCROLL': '#eea5f6',
-                                       'BUTTON': ('#FFFFFF', '#df42d1'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#0c093c', '#df42d1', '#eea5f6', '#fad6d6'], },
-                       'DarkGrey3': {'BACKGROUND': '#211717', 'TEXT': '#dfddc7', 'INPUT': '#f58b54', 'TEXT_INPUT': '#000000', 'SCROLL': '#f58b54',
-                                     'BUTTON': ('#dfddc7', '#a34a28'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#211717', '#a34a28', '#f58b54', '#dfddc7'], },
-                       'LightBrown8': {'BACKGROUND': '#dfddc7', 'TEXT': '#211717', 'INPUT': '#a34a28', 'TEXT_INPUT': '#dfddc7', 'SCROLL': '#211717',
-                                       'BUTTON': ('#dfddc7', '#a34a28'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#211717', '#a34a28', '#f58b54', '#dfddc7'], },
-                       'DarkBlue4': {'BACKGROUND': '#494ca2', 'TEXT': '#e3e7f1', 'INPUT': '#c6cbef', 'TEXT_INPUT': '#000000', 'SCROLL': '#c6cbef',
-                                     'BUTTON': ('#FFFFFF', '#8186d5'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#494ca2', '#8186d5', '#c6cbef', '#e3e7f1'], },
-                       'LightBlue4': {'BACKGROUND': '#5c94bd', 'TEXT': '#470938', 'INPUT': '#1a3e59', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#470938',
-                                      'BUTTON': ('white', '#470938'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#470938', '#1a3e59', '#5c94bd', '#f2d6eb'], },
-                       'DarkTeal2': {'BACKGROUND': '#394a6d', 'TEXT': '#c0ffb3', 'INPUT': '#52de97', 'TEXT_INPUT': '#000000', 'SCROLL': '#52de97',
-                                     'BUTTON': ('#c0ffb3', '#394a6d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#394a6d', '#3c9d9b', '#52de97', '#c0ffb3'], },
-                       'DarkTeal3': {'BACKGROUND': '#3c9d9b', 'TEXT': '#c0ffb3', 'INPUT': '#52de97', 'TEXT_INPUT': '#000000', 'SCROLL': '#52de97',
-                                     'BUTTON': ('#c0ffb3', '#394a6d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#394a6d', '#3c9d9b', '#52de97', '#c0ffb3'], },
-                       'DarkPurple5': {'BACKGROUND': '#730068', 'TEXT': '#f6f078', 'INPUT': '#01d28e', 'TEXT_INPUT': '#000000', 'SCROLL': '#01d28e',
-                                       'BUTTON': ('#f6f078', '#730068'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#730068', '#434982', '#01d28e', '#f6f078'], },
-                       'DarkPurple2': {'BACKGROUND': '#202060', 'TEXT': '#b030b0', 'INPUT': '#602080', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#602080',
-                                       'BUTTON': ('white', '#202040'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#202040', '#202060', '#602080', '#b030b0'], },
-                       'DarkBlue5': {'BACKGROUND': '#000272', 'TEXT': '#ff6363', 'INPUT': '#a32f80', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#a32f80',
-                                     'BUTTON': ('#FFFFFF', '#341677'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#000272', '#341677', '#a32f80', '#ff6363'], },
-                       'LightGrey2': {'BACKGROUND': '#f6f6f6', 'TEXT': '#420000', 'INPUT': '#d4d7dd', 'TEXT_INPUT': '#420000', 'SCROLL': '#420000',
-                                      'BUTTON': ('#420000', '#d4d7dd'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#420000', '#d4d7dd', '#eae9e9', '#f6f6f6'], },
-                       'LightGrey3': {'BACKGROUND': '#eae9e9', 'TEXT': '#420000', 'INPUT': '#d4d7dd', 'TEXT_INPUT': '#420000', 'SCROLL': '#420000',
-                                      'BUTTON': ('#420000', '#d4d7dd'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#420000', '#d4d7dd', '#eae9e9', '#f6f6f6'], },
-                       'DarkBlue6': {'BACKGROUND': '#01024e', 'TEXT': '#ff6464', 'INPUT': '#8b4367', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#8b4367',
-                                     'BUTTON': ('#FFFFFF', '#543864'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#01024e', '#543864', '#8b4367', '#ff6464'], },
-                       'DarkBlue7': {'BACKGROUND': '#241663', 'TEXT': '#eae7af', 'INPUT': '#a72693', 'TEXT_INPUT': '#eae7af', 'SCROLL': '#a72693',
-                                     'BUTTON': ('#eae7af', '#160f30'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#160f30', '#241663', '#a72693', '#eae7af'], },
-                       'LightBrown9': {'BACKGROUND': '#f6d365', 'TEXT': '#3a1f5d', 'INPUT': '#c83660', 'TEXT_INPUT': '#f6d365', 'SCROLL': '#3a1f5d',
-                                       'BUTTON': ('#f6d365', '#c83660'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#3a1f5d', '#c83660', '#e15249', '#f6d365'], },
-                       'DarkPurple3': {'BACKGROUND': '#6e2142', 'TEXT': '#ffd692', 'INPUT': '#e16363', 'TEXT_INPUT': '#ffd692', 'SCROLL': '#e16363',
-                                       'BUTTON': ('#ffd692', '#943855'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#6e2142', '#943855', '#e16363', '#ffd692'], },
-                       'LightBrown10': {'BACKGROUND': '#ffd692', 'TEXT': '#6e2142', 'INPUT': '#943855', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#6e2142',
-                                        'BUTTON': ('white', '#6e2142'),
-                                        'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                        'COLOR_LIST': ['#6e2142', '#943855', '#e16363', '#ffd692'], },
-                       'DarkPurple4': {'BACKGROUND': '#200f21', 'TEXT': '#f638dc', 'INPUT': '#5a3d5c', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#5a3d5c',
-                                       'BUTTON': ('#FFFFFF', '#382039'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#200f21', '#382039', '#5a3d5c', '#f638dc'], },
-                       'LightBlue5': {'BACKGROUND': '#b2fcff', 'TEXT': '#3e64ff', 'INPUT': '#5edfff', 'TEXT_INPUT': '#000000', 'SCROLL': '#3e64ff',
-                                      'BUTTON': ('white', '#3e64ff'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#3e64ff', '#5edfff', '#b2fcff', '#ecfcff'], },
-                       'DarkTeal4': {'BACKGROUND': '#464159', 'TEXT': '#c7f0db', 'INPUT': '#8bbabb', 'TEXT_INPUT': '#000000', 'SCROLL': '#8bbabb',
-                                     'BUTTON': ('#FFFFFF', '#6c7b95'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#464159', '#6c7b95', '#8bbabb', '#c7f0db'], },
-                       'LightTeal': {'BACKGROUND': '#c7f0db', 'TEXT': '#464159', 'INPUT': '#6c7b95', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#464159',
-                                     'BUTTON': ('white', '#464159'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#464159', '#6c7b95', '#8bbabb', '#c7f0db'], },
-                       'DarkTeal5': {'BACKGROUND': '#8bbabb', 'TEXT': '#464159', 'INPUT': '#6c7b95', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#464159',
-                                     'BUTTON': ('#c7f0db', '#6c7b95'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#464159', '#6c7b95', '#8bbabb', '#c7f0db'], },
-                       'LightGrey4': {'BACKGROUND': '#faf5ef', 'TEXT': '#672f2f', 'INPUT': '#99b19c', 'TEXT_INPUT': '#672f2f', 'SCROLL': '#672f2f',
-                                      'BUTTON': ('#672f2f', '#99b19c'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#672f2f', '#99b19c', '#d7d1c9', '#faf5ef'], },
-                       'LightGreen7': {'BACKGROUND': '#99b19c', 'TEXT': '#faf5ef', 'INPUT': '#d7d1c9', 'TEXT_INPUT': '#000000', 'SCROLL': '#d7d1c9',
-                                       'BUTTON': ('#FFFFFF', '#99b19c'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#672f2f', '#99b19c', '#d7d1c9', '#faf5ef'], },
-                       'LightGrey5': {'BACKGROUND': '#d7d1c9', 'TEXT': '#672f2f', 'INPUT': '#99b19c', 'TEXT_INPUT': '#672f2f', 'SCROLL': '#672f2f',
-                                      'BUTTON': ('white', '#672f2f'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#672f2f', '#99b19c', '#d7d1c9', '#faf5ef'], },
-                       'DarkBrown3': {'BACKGROUND': '#a0855b', 'TEXT': '#f9f6f2', 'INPUT': '#f1d6ab', 'TEXT_INPUT': '#000000', 'SCROLL': '#f1d6ab',
-                                      'BUTTON': ('white', '#38470b'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#38470b', '#a0855b', '#f1d6ab', '#f9f6f2'], },
-                       'LightBrown11': {'BACKGROUND': '#f1d6ab', 'TEXT': '#38470b', 'INPUT': '#a0855b', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#38470b',
-                                        'BUTTON': ('#f9f6f2', '#a0855b'),
-                                        'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                        'COLOR_LIST': ['#38470b', '#a0855b', '#f1d6ab', '#f9f6f2'], },
-                       'DarkRed': {'BACKGROUND': '#83142c', 'TEXT': '#f9d276', 'INPUT': '#ad1d45', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#ad1d45',
-                                   'BUTTON': ('#f9d276', '#ad1d45'),
-                                   'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                   'COLOR_LIST': ['#44000d', '#83142c', '#ad1d45', '#f9d276'], },
-                       'DarkTeal6': {'BACKGROUND': '#204969', 'TEXT': '#fff7f7', 'INPUT': '#dadada', 'TEXT_INPUT': '#000000', 'SCROLL': '#dadada',
-                                     'BUTTON': ('black', '#fff7f7'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#204969', '#08ffc8', '#dadada', '#fff7f7'], },
-                       'DarkBrown4': {'BACKGROUND': '#252525', 'TEXT': '#ff0000', 'INPUT': '#af0404', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#af0404',
-                                      'BUTTON': ('white', '#252525'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#252525', '#414141', '#af0404', '#ff0000'], },
-                       'LightYellow': {'BACKGROUND': '#f4ff61', 'TEXT': '#27aa80', 'INPUT': '#32ff6a', 'TEXT_INPUT': '#000000', 'SCROLL': '#27aa80',
-                                       'BUTTON': ('#f4ff61', '#27aa80'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#27aa80', '#32ff6a', '#a8ff3e', '#f4ff61'], },
-                       'DarkGreen1': {'BACKGROUND': '#2b580c', 'TEXT': '#fdef96', 'INPUT': '#f7b71d', 'TEXT_INPUT': '#000000', 'SCROLL': '#f7b71d',
-                                      'BUTTON': ('#fdef96', '#2b580c'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#2b580c', '#afa939', '#f7b71d', '#fdef96'], },
-
-                       'LightGreen8': {'BACKGROUND': '#c8dad3', 'TEXT': '#63707e', 'INPUT': '#93b5b3', 'TEXT_INPUT': '#000000', 'SCROLL': '#63707e',
-                                       'BUTTON': ('white', '#63707e'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#63707e', '#93b5b3', '#c8dad3', '#f2f6f5'], },
-
-                       'DarkTeal7': {'BACKGROUND': '#248ea9', 'TEXT': '#fafdcb', 'INPUT': '#aee7e8', 'TEXT_INPUT': '#000000', 'SCROLL': '#aee7e8',
-                                     'BUTTON': ('black', '#fafdcb'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#248ea9', '#28c3d4', '#aee7e8', '#fafdcb'], },
-                       'DarkBlue8': {'BACKGROUND': '#454d66', 'TEXT': '#d9d872', 'INPUT': '#58b368', 'TEXT_INPUT': '#000000', 'SCROLL': '#58b368',
-                                     'BUTTON': ('black', '#009975'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#009975', '#454d66', '#58b368', '#d9d872'], },
-                       'DarkBlue9': {'BACKGROUND': '#263859', 'TEXT': '#ff6768', 'INPUT': '#6b778d', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#6b778d',
-                                     'BUTTON': ('#ff6768', '#263859'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#17223b', '#263859', '#6b778d', '#ff6768'], },
-                       'DarkBlue10': {'BACKGROUND': '#0028ff', 'TEXT': '#f1f4df', 'INPUT': '#10eaf0', 'TEXT_INPUT': '#000000', 'SCROLL': '#10eaf0',
-                                      'BUTTON': ('#f1f4df', '#24009c'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#24009c', '#0028ff', '#10eaf0', '#f1f4df'], },
-                       'DarkBlue11': {'BACKGROUND': '#6384b3', 'TEXT': '#e6f0b6', 'INPUT': '#b8e9c0', 'TEXT_INPUT': '#000000', 'SCROLL': '#b8e9c0',
-                                      'BUTTON': ('#e6f0b6', '#684949'),
-                                      'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#684949', '#6384b3', '#b8e9c0', '#e6f0b6'], },
-
-                       'DarkTeal8': {'BACKGROUND': '#71a0a5', 'TEXT': '#212121', 'INPUT': '#665c84', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#212121',
-                                     'BUTTON': ('#fab95b', '#665c84'),
-                                     'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                     'COLOR_LIST': ['#212121', '#665c84', '#71a0a5', '#fab95b']},
-                       'DarkRed1': {'BACKGROUND': '#c10000', 'TEXT': '#eeeeee', 'INPUT': '#dedede', 'TEXT_INPUT': '#000000', 'SCROLL': '#dedede',
-                                    'BUTTON': ('#c10000', '#eeeeee'),
-                                    'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                    'COLOR_LIST': ['#c10000', '#ff4949', '#dedede', '#eeeeee'], },
-                       'LightBrown5': {'BACKGROUND': '#fff591', 'TEXT': '#e41749', 'INPUT': '#f5587b', 'TEXT_INPUT': '#000000', 'SCROLL': '#e41749',
-                                       'BUTTON': ('#fff591', '#e41749'),
-                                       'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0, 'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#e41749', '#f5587b', '#ff8a5c', '#fff591']},
-                       'LightGreen9': {'BACKGROUND': '#f1edb3', 'TEXT': '#3b503d', 'INPUT': '#4a746e', 'TEXT_INPUT': '#f1edb3', 'SCROLL': '#3b503d',
-                                       'BUTTON': ('#f1edb3', '#3b503d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0,
-                                       'COLOR_LIST': ['#3b503d', '#4a746e', '#c8cf94', '#f1edb3'], 'DESCRIPTION': ['Green', 'Turquoise', 'Yellow']},
-                       'DarkGreen2': {'BACKGROUND': '#3b503d', 'TEXT': '#f1edb3', 'INPUT': '#c8cf94', 'TEXT_INPUT': '#000000', 'SCROLL': '#c8cf94',
-                                      'BUTTON': ('#f1edb3', '#3b503d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0,
-                                      'COLOR_LIST': ['#3b503d', '#4a746e', '#c8cf94', '#f1edb3'], 'DESCRIPTION': ['Green', 'Turquoise', 'Yellow']},
-                       'LightGray1': {'BACKGROUND': '#f2f2f2', 'TEXT': '#222831', 'INPUT': '#393e46', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#222831',
-                                      'BUTTON': ('#f2f2f2', '#222831'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#222831', '#393e46', '#f96d00', '#f2f2f2'],
-                                      'DESCRIPTION': ['Black', 'Grey', 'Orange', 'Grey', 'Autumn']},
-                       'DarkGrey4': {'BACKGROUND': '#52524e', 'TEXT': '#e9e9e5', 'INPUT': '#d4d6c8', 'TEXT_INPUT': '#000000', 'SCROLL': '#d4d6c8',
-                                     'BUTTON': ('#FFFFFF', '#9a9b94'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#52524e', '#9a9b94', '#d4d6c8', '#e9e9e5'],
-                                     'DESCRIPTION': ['Grey', 'Pastel', 'Winter']},
-                       'DarkBlue12': {'BACKGROUND': '#324e7b', 'TEXT': '#f8f8f8', 'INPUT': '#86a6df', 'TEXT_INPUT': '#000000', 'SCROLL': '#86a6df',
-                                      'BUTTON': ('#FFFFFF', '#5068a9'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#324e7b', '#5068a9', '#86a6df', '#f8f8f8'],
-                                      'DESCRIPTION': ['Blue', 'Grey', 'Cold', 'Winter']},
-                       'DarkPurple6': {'BACKGROUND': '#070739', 'TEXT': '#e1e099', 'INPUT': '#c327ab', 'TEXT_INPUT': '#e1e099', 'SCROLL': '#c327ab',
-                                       'BUTTON': ('#e1e099', '#521477'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                       'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#070739', '#521477', '#c327ab', '#e1e099'],
-                                       'DESCRIPTION': ['Black', 'Purple', 'Yellow', 'Dark']},
-                       'DarkBlue13': {'BACKGROUND': '#203562', 'TEXT': '#e3e8f8', 'INPUT': '#c0c5cd', 'TEXT_INPUT': '#000000', 'SCROLL': '#c0c5cd',
-                                      'BUTTON': ('#FFFFFF', '#3e588f'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#203562', '#3e588f', '#c0c5cd', '#e3e8f8'],
-                                      'DESCRIPTION': ['Blue', 'Grey', 'Wedding', 'Cold']},
-                       'DarkBrown5': {'BACKGROUND': '#3c1b1f', 'TEXT': '#f6e1b5', 'INPUT': '#e2bf81', 'TEXT_INPUT': '#000000', 'SCROLL': '#e2bf81',
-                                      'BUTTON': ('#3c1b1f', '#f6e1b5'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#3c1b1f', '#b21e4b', '#e2bf81', '#f6e1b5'],
-                                      'DESCRIPTION': ['Brown', 'Red', 'Yellow', 'Warm']},
-                       'DarkGreen3': {'BACKGROUND': '#062121', 'TEXT': '#eeeeee', 'INPUT': '#e4dcad', 'TEXT_INPUT': '#000000', 'SCROLL': '#e4dcad',
-                                      'BUTTON': ('#eeeeee', '#181810'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#062121', '#181810', '#e4dcad', '#eeeeee'],
-                                      'DESCRIPTION': ['Black', 'Black', 'Brown', 'Grey']},
-                       'DarkBlack1': {'BACKGROUND': '#181810', 'TEXT': '#eeeeee', 'INPUT': '#e4dcad', 'TEXT_INPUT': '#000000', 'SCROLL': '#e4dcad',
-                                      'BUTTON': ('white', '#062121'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#062121', '#181810', '#e4dcad', '#eeeeee'],
-                                      'DESCRIPTION': ['Black', 'Black', 'Brown', 'Grey']},
-                       'DarkGrey5': {'BACKGROUND': '#343434', 'TEXT': '#f3f3f3', 'INPUT': '#e9dcbe', 'TEXT_INPUT': '#000000', 'SCROLL': '#e9dcbe',
-                                     'BUTTON': ('#FFFFFF', '#8e8b82'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#343434', '#8e8b82', '#e9dcbe', '#f3f3f3'], 'DESCRIPTION': ['Grey', 'Brown']},
-                       'LightBrown12': {'BACKGROUND': '#8e8b82', 'TEXT': '#f3f3f3', 'INPUT': '#e9dcbe', 'TEXT_INPUT': '#000000', 'SCROLL': '#e9dcbe',
-                                        'BUTTON': ('#f3f3f3', '#8e8b82'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#343434', '#8e8b82', '#e9dcbe', '#f3f3f3'], 'DESCRIPTION': ['Grey', 'Brown']},
-                       'DarkTeal9': {'BACKGROUND': '#13445a', 'TEXT': '#fef4e8', 'INPUT': '#446878', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#446878',
-                                     'BUTTON': ('#fef4e8', '#446878'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#13445a', '#970747', '#446878', '#fef4e8'],
-                                     'DESCRIPTION': ['Red', 'Grey', 'Blue', 'Wedding', 'Retro']},
-                       'DarkBlue14': {'BACKGROUND': '#21273d', 'TEXT': '#f1f6f8', 'INPUT': '#b9d4f1', 'TEXT_INPUT': '#000000', 'SCROLL': '#b9d4f1',
-                                      'BUTTON': ('#FFFFFF', '#6a759b'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#21273d', '#6a759b', '#b9d4f1', '#f1f6f8'],
-                                      'DESCRIPTION': ['Blue', 'Black', 'Grey', 'Cold', 'Winter']},
-                       'LightBlue6': {'BACKGROUND': '#f1f6f8', 'TEXT': '#21273d', 'INPUT': '#6a759b', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#21273d',
-                                      'BUTTON': ('#f1f6f8', '#6a759b'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#21273d', '#6a759b', '#b9d4f1', '#f1f6f8'],
-                                      'DESCRIPTION': ['Blue', 'Black', 'Grey', 'Cold', 'Winter']},
-                       'DarkGreen4': {'BACKGROUND': '#044343', 'TEXT': '#e4e4e4', 'INPUT': '#045757', 'TEXT_INPUT': '#e4e4e4', 'SCROLL': '#045757',
-                                      'BUTTON': ('#e4e4e4', '#045757'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#222222', '#044343', '#045757', '#e4e4e4'],
-                                      'DESCRIPTION': ['Black', 'Turquoise', 'Grey', 'Dark']},
-                       'DarkGreen5': {'BACKGROUND': '#1b4b36', 'TEXT': '#e0e7f1', 'INPUT': '#aebd77', 'TEXT_INPUT': '#000000', 'SCROLL': '#aebd77',
-                                      'BUTTON': ('#FFFFFF', '#538f6a'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#1b4b36', '#538f6a', '#aebd77', '#e0e7f1'], 'DESCRIPTION': ['Green', 'Grey']},
-                       'DarkTeal10': {'BACKGROUND': '#0d3446', 'TEXT': '#d8dfe2', 'INPUT': '#71adb5', 'TEXT_INPUT': '#000000', 'SCROLL': '#71adb5',
-                                      'BUTTON': ('#FFFFFF', '#176d81'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#0d3446', '#176d81', '#71adb5', '#d8dfe2'],
-                                      'DESCRIPTION': ['Grey', 'Turquoise', 'Winter', 'Cold']},
-                       'DarkGrey6': {'BACKGROUND': '#3e3e3e', 'TEXT': '#ededed', 'INPUT': '#68868c', 'TEXT_INPUT': '#ededed', 'SCROLL': '#68868c',
-                                     'BUTTON': ('#FFFFFF', '#405559'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#3e3e3e', '#405559', '#68868c', '#ededed'],
-                                     'DESCRIPTION': ['Grey', 'Turquoise', 'Winter']},
-                       'DarkTeal11': {'BACKGROUND': '#405559', 'TEXT': '#ededed', 'INPUT': '#68868c', 'TEXT_INPUT': '#ededed', 'SCROLL': '#68868c',
-                                      'BUTTON': ('#ededed', '#68868c'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#3e3e3e', '#405559', '#68868c', '#ededed'],
-                                      'DESCRIPTION': ['Grey', 'Turquoise', 'Winter']},
-                       'LightBlue7': {'BACKGROUND': '#9ed0e0', 'TEXT': '#19483f', 'INPUT': '#5c868e', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#19483f',
-                                      'BUTTON': ('white', '#19483f'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#19483f', '#5c868e', '#ff6a38', '#9ed0e0'],
-                                      'DESCRIPTION': ['Orange', 'Blue', 'Turquoise']},
-                       'LightGreen10': {'BACKGROUND': '#d8ebb5', 'TEXT': '#205d67', 'INPUT': '#639a67', 'TEXT_INPUT': '#FFFFFF', 'SCROLL': '#205d67',
-                                        'BUTTON': ('#d8ebb5', '#205d67'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#205d67', '#639a67', '#d9bf77', '#d8ebb5'],
-                                        'DESCRIPTION': ['Blue', 'Green', 'Brown', 'Vintage']},
-                       'DarkBlue15': {'BACKGROUND': '#151680', 'TEXT': '#f1fea4', 'INPUT': '#375fc0', 'TEXT_INPUT': '#f1fea4', 'SCROLL': '#375fc0',
-                                      'BUTTON': ('#f1fea4', '#1c44ac'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#151680', '#1c44ac', '#375fc0', '#f1fea4'],
-                                      'DESCRIPTION': ['Blue', 'Yellow', 'Cold']},
-                       'DarkBlue16': {'BACKGROUND': '#1c44ac', 'TEXT': '#f1fea4', 'INPUT': '#375fc0', 'TEXT_INPUT': '#f1fea4', 'SCROLL': '#375fc0',
-                                      'BUTTON': ('#f1fea4', '#151680'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#151680', '#1c44ac', '#375fc0', '#f1fea4'],
-                                      'DESCRIPTION': ['Blue', 'Yellow', 'Cold']},
-                       'DarkTeal12': {'BACKGROUND': '#004a7c', 'TEXT': '#fafafa', 'INPUT': '#e8f1f5', 'TEXT_INPUT': '#000000', 'SCROLL': '#e8f1f5',
-                                      'BUTTON': ('#fafafa', '#005691'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#004a7c', '#005691', '#e8f1f5', '#fafafa'],
-                                      'DESCRIPTION': ['Grey', 'Blue', 'Cold', 'Winter']},
-                       'LightBrown13': {'BACKGROUND': '#ebf5ee', 'TEXT': '#921224', 'INPUT': '#bdc6b8', 'TEXT_INPUT': '#921224', 'SCROLL': '#921224',
-                                        'BUTTON': ('white', '#921224'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                        'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#921224', '#bdc6b8', '#bce0da', '#ebf5ee'],
-                                        'DESCRIPTION': ['Red', 'Blue', 'Grey', 'Vintage', 'Wedding']},
-                       'DarkBlue17': {'BACKGROUND': '#21294c', 'TEXT': '#f9f2d7', 'INPUT': '#f2dea8', 'TEXT_INPUT': '#000000', 'SCROLL': '#f2dea8',
-                                      'BUTTON': ('#f9f2d7', '#141829'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#141829', '#21294c', '#f2dea8', '#f9f2d7'],
-                                      'DESCRIPTION': ['Black', 'Blue', 'Yellow']},
-                       'DarkBrown6': {'BACKGROUND': '#785e4d', 'TEXT': '#f2eee3', 'INPUT': '#baaf92', 'TEXT_INPUT': '#000000', 'SCROLL': '#baaf92',
-                                      'BUTTON': ('white', '#785e4d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#785e4d', '#ff8426', '#baaf92', '#f2eee3'],
-                                      'DESCRIPTION': ['Grey', 'Brown', 'Orange', 'Autumn']},
-                       'DarkGreen6': {'BACKGROUND': '#5c715e', 'TEXT': '#f2f9f1', 'INPUT': '#ddeedf', 'TEXT_INPUT': '#000000', 'SCROLL': '#ddeedf',
-                                      'BUTTON': ('#f2f9f1', '#5c715e'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#5c715e', '#b6cdbd', '#ddeedf', '#f2f9f1'],
-                                      'DESCRIPTION': ['Grey', 'Green', 'Vintage']},
-                       'DarkGrey7': {'BACKGROUND': '#4b586e', 'TEXT': '#dddddd', 'INPUT': '#574e6d', 'TEXT_INPUT': '#dddddd', 'SCROLL': '#574e6d',
-                                     'BUTTON': ('#dddddd', '#43405d'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                     'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#43405d', '#4b586e', '#574e6d', '#dddddd'],
-                                     'DESCRIPTION': ['Grey', 'Winter', 'Cold']},
-                       'DarkRed2': {'BACKGROUND': '#ab1212', 'TEXT': '#f6e4b5', 'INPUT': '#cd3131', 'TEXT_INPUT': '#f6e4b5', 'SCROLL': '#cd3131',
-                                    'BUTTON': ('#f6e4b5', '#ab1212'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                    'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#ab1212', '#1fad9f', '#cd3131', '#f6e4b5'],
-                                    'DESCRIPTION': ['Turquoise', 'Red', 'Yellow']},
-                       'LightGrey6': {'BACKGROUND': '#e3e3e3', 'TEXT': '#233142', 'INPUT': '#455d7a', 'TEXT_INPUT': '#e3e3e3', 'SCROLL': '#233142',
-                                      'BUTTON': ('#e3e3e3', '#455d7a'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0, 'COLOR_LIST': ['#233142', '#455d7a', '#f95959', '#e3e3e3'],
-                                      'DESCRIPTION': ['Black', 'Blue', 'Red', 'Grey']},
-                       'HotDogStand': {'BACKGROUND': 'red', 'TEXT': 'yellow', 'INPUT': 'yellow', 'TEXT_INPUT': 'black', 'SCROLL': 'yellow',
-                                      'BUTTON': ('red', 'yellow'), 'PROGRESS': DEFAULT_PROGRESS_BAR_COLOR, 'BORDER': 1, 'SLIDER_DEPTH': 0,
-                                      'PROGRESS_DEPTH': 0,
-                                     },
-                       }
 
 
 def ListOfLookAndFeelValues():
@@ -9118,6 +8610,7 @@ def theme_previewer(columns=12):
     """
     preview_all_look_and_feel_themes(columns)
 
+
 def ChangeLookAndFeel(index, force=False):
     """
     Change the "color scheme" of all future PySimpleGUI Windows.
@@ -9132,12 +8625,11 @@ def ChangeLookAndFeel(index, force=False):
     The number will vary for each pair. There are more DarkGrey entries than there are LightYellow for example.
     Default = The default settings (only button color is different than system default)
     Default1 = The full system default including the button (everything's gray... how sad... don't be all gray... please....)
-    :param index: the name of the index into the Look and Feel table (does not have to be exact, can be "fuzzy")
+    :param index:  the name of the index into the Look and Feel table (does not have to be exact, can be "fuzzy")
     :type index: (str)
-    :param force: no longer used
+    :param force:  no longer used
     :type force: (bool)
     """
-
     global CURRENT_LOOK_AND_FEEL
 
     # if sys.platform.startswith('darwin') and not force:
@@ -9147,7 +8639,6 @@ def ChangeLookAndFeel(index, force=False):
     theme = index
     # normalize available l&f values
     lf_values = [item.lower() for item in list_of_look_and_feel_values()]
-
     # option 1
     opt1 = theme.replace(' ', '').lower()
 
@@ -9174,10 +8665,10 @@ def ChangeLookAndFeel(index, force=False):
 
         # Color the progress bar using button background and input colors...unless they're the same
         if colors['PROGRESS'] != COLOR_SYSTEM_DEFAULT:
-            if colors['BUTTON'][1] != colors['INPUT'] and colors['BUTTON'][1] != colors['BACKGROUND']:
-                colors['PROGRESS'] = colors['BUTTON'][1], colors['INPUT']
-            else:  # if the same, then use text input on top of input color
-                colors['PROGRESS'] = (colors['TEXT_INPUT'], colors['INPUT'])
+                if colors['BUTTON'][1] != colors['INPUT'] and colors['BUTTON'][1] != colors['BACKGROUND']:
+                    colors['PROGRESS'] = colors['BUTTON'][1], colors['INPUT']
+                else:  # if the same, then use text input on top of input color
+                    colors['PROGRESS'] = (colors['TEXT_INPUT'], colors['INPUT'])
         else:
             colors['PROGRESS'] = DEFAULT_PROGRESS_BAR_COLOR_OFFICIAL
         # call to change all the colors
@@ -9362,8 +8853,11 @@ def Popup(*args, title=None, button_color=None, background_color=None, text_colo
         # fancy code to check if string and convert if not is not need. Just always convert to string :-)
         # if not isinstance(message, str): message = str(message)
         message = str(message)
-        if message.count('\n'):
-            message_wrapped = message
+        if message.count('\n'):         # if there are line breaks, then wrap each segment separately
+            # message_wrapped = message         # used to just do this, but now breaking into smaller pieces
+            message_wrapped = ''
+            msg_list = message.split('\n')      # break into segments that will each be wrapped
+            message_wrapped = '\n'.join([textwrap.fill(msg, local_line_width) for msg in msg_list])
         else:
             message_wrapped = textwrap.fill(message, local_line_width)
         message_wrapped_lines = message_wrapped.count('\n') + 1
@@ -9372,7 +8866,8 @@ def Popup(*args, title=None, button_color=None, background_color=None, text_colo
         max_line_total = max(max_line_total, width_used)
         # height = _GetNumLinesNeeded(message, width_used)
         height = message_wrapped_lines
-        layout.append([Text(message_wrapped, auto_size_text=True, text_color=text_color, background_color=background_color)])
+        window.AddRow(
+            Text(message_wrapped, auto_size_text=True, text_color=text_color, background_color=background_color))
         total_lines += height
 
     # if total_lines < 3:
@@ -10276,7 +9771,7 @@ def main():
                     key='_LISTBOX_', font='Courier 12', text_color='red',)],
         [Combo([1,2,3], size=(200, 35), tooltip='Combo', visible_items=2, key='_COMBO_')],
         [Spin([1, 2, 3], size=(40, 30), tooltip='Spinner', key='_SPIN1_')],
-        [Spin(['Combo item 1', 'Combo item 2', 'Combo item 3'], size=(240, 30), tooltip='Spinner', key='_SPIN2_')],
+        [Spin(['Spin item 1', 'Spin item 2', 'Spin item 3'], size=(240, 30), tooltip='Spinner', key='_SPIN2_')],
     ]
 
     frame3 = [
@@ -10317,9 +9812,10 @@ def main():
         [Text('VERSION {}'.format(ver), size=(85,1), text_color='yellow', font='ANY 18')],
 
         # [Image(data_base64=logo, tooltip='Image', click_submits=True, key='_IMAGE_'),
-         [Frame('Input Text Group', frame1, title_color='yellow', tooltip='Text Group'), Stretch()],
-        [Frame('Multiple Choice Group', frame2, title_color='green'),
-         Frame('Binary Choice Group', frame3, title_color='purple'),
+         [Frame('Input Text Group', frame1, title_color='yellow', tooltip='Text Group', frame_color='yellow', pad=(0,0)), Stretch()],
+        [Frame('Multiple Choice Group', frame2, title_color=theme_text_color(), frame_color='yellow'),
+         # Column([[Frame('Binary Choice Group', frame3, frame_color='white', title_color='white')]], pad=(0,0)),
+         Frame('Binary Choice Group', frame3, frame_color='white', title_color='white'),
          Frame('Variable Choice Group', frame4, title_color='blue'), Stretch()],
         [Frame('Structured Data Group', frame5, title_color='yellow'), ],
         # [Frame('Graphing Group', frame6)],
@@ -10333,9 +9829,10 @@ def main():
 
     window = Window('Window Title', layout,
                        font=('Helvetica', 13),
-                       default_button_element_size=(100, 30),
-                       auto_size_buttons=False,
+                       # default_button_element_size=(100, 30),
+                       # auto_size_buttons=False,
                        default_element_size=(200, 22),
+                        margins = (40,40),
                        # border_depth=1,
                        )
     # graph_elem.DrawCircle((200, 200), 50, 'blue')
